@@ -1,4 +1,6 @@
 require 'openssl'
+require 'hyperkit/middleware/follow_redirects'
+require 'hyperkit/response/raise_error'
 
 ################################################################################
 #                                                                              #
@@ -37,6 +39,17 @@ module Hyperkit
 
     # Default media type
     MEDIA_TYPE = 'application/json'
+
+    # In Faraday 0.9, Faraday::Builder was renamed to Faraday::RackBuilder
+    RACK_BUILDER_CLASS = defined?(Faraday::RackBuilder) ? Faraday::RackBuilder : Faraday::Builder
+
+		# Default Faraday middleware stack
+    MIDDLEWARE = RACK_BUILDER_CLASS.new do |builder|
+      builder.use Hyperkit::Middleware::FollowRedirects
+      builder.use Hyperkit::Response::RaiseError
+      builder.adapter Faraday.default_adapter
+    end
+
 
     # Default User Agent header string
     USER_AGENT   = "Hyperkit Ruby Gem #{Hyperkit::VERSION}".freeze
@@ -86,6 +99,19 @@ module Hyperkit
       # @return [String]
       def client_key
         ENV['HYPERKIT_CLIENT_KEY'] || CLIENT_KEY
+      end
+
+      # Default middleware stack for Faraday::Connection
+      # from {MIDDLEWARE}
+      # @return [String]
+      def middleware
+        MIDDLEWARE
+      end
+
+      # Default proxy server URI for Faraday connection from ENV
+      # @return [String]
+      def proxy
+        ENV['HYPERKIT_PROXY']
       end
 
       # Default User-Agent header string from ENV or {USER_AGENT}

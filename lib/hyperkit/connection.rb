@@ -173,7 +173,7 @@ module Hyperkit
     def boolean_from_response(method, path, options = {})
       request(method, path, options)
       @last_response.status == 204
-    rescue Octokit::NotFound
+    rescue Hyperkit::NotFound
       false
     end
 

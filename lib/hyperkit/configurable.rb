@@ -36,10 +36,17 @@ module Hyperkit
     #   @return [Hash] Configure connection options for Faraday
     # @!attribute default_media_type
     #   @return [String] Configure preferred media type (for API versioning, for example)
+    # @!attribute middleware
+    #   @see https://github.com/lostisland/faraday
+    #   @return [Faraday::Builder or Faraday::RackBuilder] Configure middleware for Faraday
+    # @!attribute proxy
+    #   @see https://github.com/lostisland/faraday
+    #   @return [String] URI for proxy server
     # @!attribute user_agent
     #   @return [String] Configure User-Agent header for requests.
 
-    attr_accessor :client_cert, :client_key, :connection_options, :default_media_type, :user_agent
+    attr_accessor :client_cert, :client_key, :connection_options,
+                  :default_media_type, :middleware, :proxy, :user_agent
     attr_writer :api_endpoint
 
     class << self
@@ -53,6 +60,8 @@ module Hyperkit
           :client_key,
           :connection_options,
           :default_media_type,
+          :middleware,
+          :proxy,
           :user_agent,
         ]
       end

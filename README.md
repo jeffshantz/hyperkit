@@ -22,6 +22,16 @@ Or install it yourself as:
 
 ## Usage
 
+You'll need to first enable the HTTPS API:
+
+```
+lxc config set core.https_address 127.0.0.1
+```
+
+To listen on all interfaces, replace `127.0.0.1` with `0.0.0.0`.
+
+Examples of usage:
+
 ```
 require 'hyperkit'
 require 'pry'
