@@ -1,5 +1,6 @@
 require 'hyperkit/configurable'
 require 'hyperkit/connection'
+require 'hyperkit/client/certificates'
 require 'hyperkit/client/operations'
 require 'hyperkit/client/profiles'
 
@@ -9,6 +10,7 @@ module Hyperkit
 
     include Hyperkit::Configurable
     include Hyperkit::Connection
+    include Hyperkit::Client::Certificates
     include Hyperkit::Client::Operations
     include Hyperkit::Client::Profiles
 
