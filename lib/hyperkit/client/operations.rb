@@ -19,6 +19,12 @@ module Hyperkit
         response.to_h
       end
 
+      # DELETE /operations/<uuid>
+      def cancel_operation(uuid)
+        response = delete operation_path(uuid)
+        response.to_h
+      end
+
       # GET /operations/<uuid>/wait
       def wait_for_operation(uuid, timeout=nil)
         url = File.join(operation_path(uuid), "wait")

@@ -96,4 +96,15 @@ describe Hyperkit::Client::Operations do
 
   end
 
+  describe ".cancel_operation" do
+
+    it "makes the correct API call" do
+      request = stub_delete("/1.0/operations/b8d84888-1dc2-44fd-b386-7f679e171ba5").
+        to_return(:status => 202, body: {}.to_json, :headers => {'Content-Type' => 'application/json'})
+      client.cancel_operation("b8d84888-1dc2-44fd-b386-7f679e171ba5")
+      assert_requested request
+    end
+
+  end
+
 end
