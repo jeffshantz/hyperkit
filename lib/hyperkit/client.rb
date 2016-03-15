@@ -1,5 +1,6 @@
 require 'hyperkit/configurable'
 require 'hyperkit/connection'
+require 'hyperkit/client/operations'
 require 'hyperkit/client/profiles'
 
 module Hyperkit
@@ -8,6 +9,7 @@ module Hyperkit
 
     include Hyperkit::Configurable
     include Hyperkit::Connection
+    include Hyperkit::Client::Operations
     include Hyperkit::Client::Profiles
 
     def initialize(options = {})
