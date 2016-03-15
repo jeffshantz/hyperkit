@@ -13,6 +13,16 @@ module Hyperkit
         response[:metadata].to_h.values.flatten.map { |path| path.split('/').last }
       end
 
+      # GET /operations/<uuid>
+      def operation(uuid)
+        response = get operation_path(uuid)
+        response.to_h
+      end
+
+      def operation_path(uuid)
+        File.join(operations_path, uuid)
+      end
+
       def operations_path 
         "/1.0/operations"
       end
