@@ -24,6 +24,7 @@ describe Hyperkit::Client::Operations do
       "err": ""
     }
   }
+
   describe ".operations", :vcr do
 
     it "returns an array of operations" do
@@ -56,7 +57,7 @@ describe Hyperkit::Client::Operations do
 
   end
 
-  describe ".operation", :vcr do
+  describe ".operation" do
 
     it "retrieves an operation" do
       stub_get("/1.0/operations/b8d84888-1dc2-44fd-b386-7f679e171ba5").
@@ -71,6 +72,25 @@ describe Hyperkit::Client::Operations do
         to_return(:status => 200, body: operation.to_json, :headers => {'Content-Type' => 'application/json'})
 
       op = client.operation("b8d84888-1dc2-44fd-b386-7f679e171ba5")
+      assert_requested request
+    end
+
+  end
+
+  describe ".wait_for_operation" do
+
+    it "defaults to an indefinite timeout" do
+      request = stub_get("/1.0/operations/b8d84888-1dc2-44fd-b386-7f679e171ba5/wait").
+        to_return(:status => 200, body: {}.to_json, :headers => {'Content-Type' => 'application/json'})
+
+      client.wait_for_operation("b8d84888-1dc2-44fd-b386-7f679e171ba5")
+      assert_requested request
+    end
+
+    it "accepts a numeric timeout in seconds" do
+      request = stub_get("/1.0/operations/b8d84888-1dc2-44fd-b386-7f679e171ba5/wait?timeout=5").
+        to_return(:status => 200, body: {}.to_json, :headers => {'Content-Type' => 'application/json'})
+      client.wait_for_operation("b8d84888-1dc2-44fd-b386-7f679e171ba5", 5)
       assert_requested request
     end
 
