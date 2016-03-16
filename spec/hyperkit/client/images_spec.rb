@@ -96,5 +96,54 @@ describe Hyperkit::Client::Images do
 
   end
 
+  describe ".image_alias", :vcr do
+
+    it "retrieves an alias" do
+			image_alias = "ubuntu/xenial/amd64/default"
+      client.api_endpoint = "https://images.linuxcontainers.org:8443"
+      a = client.image_alias(image_alias)
+
+			expect(a[:name]).to eq(image_alias)
+      expect(a[:target]).to_not be_nil
+    end
+
+    it "makes the correct API call" do
+			request = stub_get("/1.0/images/aliases/ubuntu/xenial/amd64/default").
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      client.image_alias("ubuntu/xenial/amd64/default")
+      assert_requested request
+    end
+
+  end
+
+  describe ".image_by_alias", :vcr do
+    it "retrieves an image by its alias" do
+			image_alias = "ubuntu/xenial/amd64/default"
+      client.api_endpoint = 'https://images.linuxcontainers.org:8443'
+      image = client.image_by_alias(image_alias)
+
+      expect(image[:aliases].any? { |a| a[:name] == image_alias }).to be_truthy
+			expect(image[:properties][:description]).to include("Ubuntu xenial (amd64)")
+			expect(image[:architecture]).to eq("x86_64")
+    end
+
+    it "makes the correct API calls" do
+			image_alias = "ubuntu/xenial/amd64/default"
+      fingerprint = "45bcc353f629b23ce30ef4cca14d2a4990c396d85ea68905795cc7579c145123"
+
+			request1 = stub_get("/1.0/images/aliases/#{image_alias}").
+        to_return(status: 200, body: { metadata: {target: fingerprint, name: image_alias}}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+			request2 = stub_get("/1.0/images/#{fingerprint}").
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      client.image_by_alias(image_alias)
+      assert_requested request1
+      assert_requested request2
+    end
+
+  end
+
 end
 
