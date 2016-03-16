@@ -107,6 +107,7 @@ Currently, we support:
 
 * `/1.0/profiles`
 * `/1.0/operations` (except `/1.0/operations/<uuid>/websocket`)
+* `/1.0/certificates`
 
 ## Development
 
