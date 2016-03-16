@@ -30,5 +30,25 @@ describe Hyperkit::Client::Networks do
 
   end
 
+  describe ".network", :vcr do
+
+    it "retrieves a network" do
+      network = client.network("lo")
+
+      expect(network[:name]).to eq("lo")
+      expect(network[:type]).to eq("loopback")
+      expect(network[:used_by]).to eq([])
+    end
+
+    it "makes the correct API call" do
+			request = stub_get("/1.0/networks/lo").
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      client.network("lo")
+      assert_requested request
+    end
+
+  end
+
 end
 
