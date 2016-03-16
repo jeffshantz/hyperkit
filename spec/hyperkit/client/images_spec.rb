@@ -37,5 +37,27 @@ describe Hyperkit::Client::Images do
 
   end
 
+  describe ".image", :vcr do
+
+    it "retrieves a image" do
+			fingerprint = "45bcc353f629b23ce30ef4cca14d2a4990c396d85ea68905795cc7579c145123"
+      client.api_endpoint = 'https://images.linuxcontainers.org:8443'
+      image = client.image(fingerprint)
+
+			expect(image[:properties][:description]).to include("Centos 6 (amd64)")
+			expect(image[:architecture]).to eq("x86_64")
+			expect(image[:fingerprint]).to eq(fingerprint)
+    end
+
+    it "makes the correct API call" do
+			request = stub_get("/1.0/images/45bcc353f629b23ce30ef4cca14d2a4990c396d85ea68905795cc7579c145123").
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      client.image("45bcc353f629b23ce30ef4cca14d2a4990c396d85ea68905795cc7579c145123")
+      assert_requested request
+    end
+
+  end
+
 end
 
