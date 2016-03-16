@@ -1,3 +1,7 @@
+require 'hyperkit/version'
+require 'hyperkit/client'
+require 'hyperkit/default'
+
 ################################################################################
 #                                                                              #
 # Based on Octokit                                                             #
@@ -19,12 +23,9 @@
 #                                                                              #
 ################################################################################
 
-require 'hyperkit/version'
-require 'hyperkit/client'
-require 'hyperkit/default'
 
 # Ruby toolkit for the LXD API.
-# LXD - The next-generation container hypervisor for Linux
+# LXD - the next-generation container hypervisor for Linux
 module Hyperkit 
 
   class << self
