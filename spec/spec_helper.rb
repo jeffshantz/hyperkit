@@ -138,3 +138,7 @@ EOF
 
 end
 
+def test_certificate_fingerprint
+  "05bae8963b233406f67a584dac0cbc6be588d5afa7ccaa676f7cbe55bf98da99"
+end
+

@@ -27,6 +27,12 @@ module Hyperkit
         response[:metadata]
       end
 
+      # DELETE /certificates/<fingerprint>
+      def delete_certificate(fingerprint)
+        response = delete certificate_path(fingerprint)
+        response[:metadata]
+      end
+
       def certificate_path(fingerprint)
         File.join(certificates_path, fingerprint)
       end
