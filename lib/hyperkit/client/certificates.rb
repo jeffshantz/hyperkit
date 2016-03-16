@@ -21,6 +21,16 @@ module Hyperkit
         response = post certificates_path, options
       end
 
+      # GET /certificates/<fingerprint>
+      def certificate(fingerprint)
+        response = get certificate_path(fingerprint)
+        response[:metadata]
+      end
+
+      def certificate_path(fingerprint)
+        File.join(certificates_path, fingerprint)
+      end
+
       def certificates_path
         "/1.0/certificates"
       end

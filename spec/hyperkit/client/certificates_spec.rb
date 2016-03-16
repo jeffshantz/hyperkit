@@ -65,4 +65,25 @@ describe Hyperkit::Client::Certificates do
 
   end
 
+  describe ".certificate", :vcr do
+
+    it "retrieves a certificate" do
+      client.create_certificate(test_certificate)
+      cert = client.certificate("05bae8963b233406f67a584dac0cbc6be588d5afa7ccaa676f7cbe55bf98da99")
+
+      expect(cert[:certificate]).to eq(test_certificate)
+      expect(cert[:fingerprint]).to eq("05bae8963b233406f67a584dac0cbc6be588d5afa7ccaa676f7cbe55bf98da99")
+      expect(cert[:type]).to eq("client")
+    end
+
+    it "makes the correct API call" do
+			request = stub_get("/1.0/certificates/05bae8963b233406f67a584dac0cbc6be588d5afa7ccaa676f7cbe55bf98da99").
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      client.certificate("05bae8963b233406f67a584dac0cbc6be588d5afa7ccaa676f7cbe55bf98da99")
+      assert_requested request
+    end
+
+  end
+
 end
