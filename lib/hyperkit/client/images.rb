@@ -39,6 +39,29 @@ module Hyperkit
         response = get image_path(fingerprint)
         response[:metadata]
       end
+ 
+      # List of image aliases on the server (public or private)
+      #
+      # @return [Array<String>] An array of image aliases
+      # @example Get list of image aliases
+      #   Hyperkit.client.images #=> [
+      #     "ubuntu/xenial/amd64/default",
+      #     "ubuntu/xenial/amd64",
+      #     "ubuntu/xenial/armhf/default",
+      #     "ubuntu/xenial/armhf",
+      #     "ubuntu/xenial/i386/default",
+      #     "ubuntu/xenial/i386",
+      #     "ubuntu/xenial/powerpc/default",
+      #     "ubuntu/xenial/powerpc",
+      #     "ubuntu/xenial/ppc64el/default",
+      #     "ubuntu/xenial/ppc64el",
+      #     "ubuntu/xenial/s390x/default",
+      #     "ubuntu/xenial/s390x"
+      #   ] 
+      def image_aliases
+        response = get image_aliases_path 
+        response[:metadata].map { |path| path.sub("#{image_aliases_path}/","") }
+      end
 
       private
 
@@ -46,7 +69,9 @@ module Hyperkit
         File.join(images_path, fingerprint)
       end
 
-      private
+      def image_aliases_path
+        File.join(images_path, "aliases")
+      end
 
       def images_path
         "/1.0/images"

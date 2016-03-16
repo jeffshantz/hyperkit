@@ -59,5 +59,42 @@ describe Hyperkit::Client::Images do
 
   end
 
+  describe ".image_aliases", :vcr do
+
+    it "returns an array of image aliases" do
+      aliases = client.image_aliases
+      expect(aliases).to be_kind_of(Array)
+    end
+
+    it "makes the correct API call" do
+      aliases = client.image_aliases
+      assert_requested :get, lxd_url("/1.0/images/aliases")
+    end
+
+    it "returns only the image aliases and not their paths" do
+      body = { metadata: [
+        "/1.0/images/aliases/ubuntu/xenial/amd64/default",
+        "/1.0/images/aliases/ubuntu/xenial/amd64",
+        "/1.0/images/aliases/ubuntu/xenial/armhf/default",
+        "/1.0/images/aliases/ubuntu/xenial/armhf",
+        "/1.0/images/aliases/ubuntu/xenial/i386/default",
+        "/1.0/images/aliases/ubuntu/xenial/i386"
+			]}.to_json
+      stub_get("/1.0/images/aliases").
+        to_return(:status => 200, body: body, :headers => {'Content-Type' => 'application/json'})
+
+      aliases = client.image_aliases
+      expect(aliases).to eq(%w[
+        ubuntu/xenial/amd64/default
+        ubuntu/xenial/amd64
+        ubuntu/xenial/armhf/default
+        ubuntu/xenial/armhf
+        ubuntu/xenial/i386/default
+        ubuntu/xenial/i386
+      ])
+    end
+
+  end
+
 end
 
