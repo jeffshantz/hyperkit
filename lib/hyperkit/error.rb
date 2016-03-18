@@ -194,5 +194,14 @@ module Hyperkit
   # Raised when a repository is created with an invalid format
   class InvalidRepository < ArgumentError; end
 
+  # Raised when a method requires an alias or a fingerprint, but
+  # none is provided
+  class ImageIdentifierRequired < StandardError; end
+
+  # Raised when a method requires a protocol to be specified
+  # (e.g. "lxd" or "simplestreams"), but an invalid protocol is
+  # provided
+  class InvalidProtocol < StandardError; end
+
 end
 

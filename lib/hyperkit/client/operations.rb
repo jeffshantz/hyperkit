@@ -30,7 +30,7 @@ module Hyperkit
         url = File.join(operation_path(uuid), "wait")
         url += "?timeout=#{timeout}" if timeout.to_i > 0
         response = get url
-        response.to_h
+        response[:metadata]
       end
 
       def operation_path(uuid)
