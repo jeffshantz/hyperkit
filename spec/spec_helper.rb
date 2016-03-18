@@ -15,6 +15,8 @@ require 'hyperkit'
 require 'rspec'
 require 'webmock/rspec'
 require "base64"
+require 'digest/sha2'
+require 'pry'
 
 WebMock.disable_net_connect!(:allow => 'coveralls.io')
 
@@ -43,6 +45,7 @@ VCR.configure do |c|
   }
   c.cassette_library_dir = 'spec/cassettes'
   c.hook_into :webmock
+  c.allow_http_connections_when_no_cassette = true
 end
 
 def stub_delete(url)
@@ -73,8 +76,18 @@ def fixture_path
   File.expand_path("../fixtures", __FILE__)
 end
 
-def fixture(file)
-  File.new(fixture_path + '/' + file)
+def fixture(file, &block)
+  File.open(fixture_path + '/' + file, &block)
+end
+
+def read_fixture(file)
+  fixture(file) do |f|
+    return f.read
+  end
+end
+
+def fixture_fingerprint(file)
+  Digest::SHA256.hexdigest(read_fixture(file))
 end
 
 def json_response(file)
@@ -108,37 +121,15 @@ def unauthenticated_client
   cli
 end
 
-def test_certificate
-<<-EOF
------BEGIN CERTIFICATE-----
-MIIEDTCCAvWgAwIBAgIJAP2x5XIwszwpMA0GCSqGSIb3DQEBCwUAMIGcMQswCQYD
-VQQGEwJDQTEQMA4GA1UECAwHT250YXJpbzEPMA0GA1UEBwwGTG9uZG9uMRwwGgYD
-VQQKDBNFeGFtcGxlIENvcnBvcmF0aW9uMRUwEwYDVQQLDAxFeGFtcGxlIFVuaXQx
-FDASBgNVBAMMC2V4YW1wbGUuY29tMR8wHQYJKoZIhvcNAQkBFhBqZWZmQGV4YW1w
-bGUuY29tMB4XDTE2MDMxNjAyMzA0NFoXDTI2MDMxNDAyMzA0NFowgZwxCzAJBgNV
-BAYTAkNBMRAwDgYDVQQIDAdPbnRhcmlvMQ8wDQYDVQQHDAZMb25kb24xHDAaBgNV
-BAoME0V4YW1wbGUgQ29ycG9yYXRpb24xFTATBgNVBAsMDEV4YW1wbGUgVW5pdDEU
-MBIGA1UEAwwLZXhhbXBsZS5jb20xHzAdBgkqhkiG9w0BCQEWEGplZmZAZXhhbXBs
-ZS5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDdaPN+xiLWDA8j
-24zMyx+2YBg+8emf/WSC7pD+8hm4TzPtTUzfJssGgrcZARqUnzvWZ5XinhgBTAg3
-JP3qB8MMfI+UVgbHMododafVAglOOrosi10hzNMsSMDws5k1jNj2iZd0tLGB0w4i
-E9oGCnpzKV9oQZqg148UQhgrZSfY5vSOQvAES7PU0/Dyox38+6qpqkHwcgGFYJVL
-mq6Y4lHoUZmR8cZNYnnr5tLEvXluhDXahlH9yLJ43nDqa6HqwgJHa8Zbd3u5McEF
-tnKA7TVN2B839pAOvbnYww5BGFVVkrDUm0f+169DPsh1qbRAeOofSKUTlj8rw/Z+
-sEUKqqj5AgMBAAGjUDBOMB0GA1UdDgQWBBSMmA1R+/zdCiiUXyNxWOGbGDT1BTAf
-BgNVHSMEGDAWgBSMmA1R+/zdCiiUXyNxWOGbGDT1BTAMBgNVHRMEBTADAQH/MA0G
-CSqGSIb3DQEBCwUAA4IBAQBN9rcdFFkK0cvb4JZY7PcHG6L9KfKvNSuEoJzSuOpi
-pAsxlqnlVz1KaiPO1GzN2ikL/Ab5oKnknTXPIPDKlhQYDoAUGUQm6s2oijz5MEO/
-C3QmbHJdfPiVXY+fuE1wuJLGIB6c+cvozfeEICoLLxXgzizgnD+wGd5M2pDDiQDt
-mJbpsG2m97ZkCsH09xpDk01u0EzxoA2oA3n7SHNO/VJXJnOdMtC5qjYo9xZYjU/s
-zX6g65tuZyzJg14j9ZtT4EDwMotewuB/BzQ35oYdjUp8VP9I7AZxilNn+HAdwYYN
-fkygJ2GGlOc7XAQOrqRlCSQJQKlDK0ZVHhF29RVuibeN
------END CERTIFICATE-----
-EOF
-
+def test_cert
+  read_fixture("cert-server1.pem")
 end
 
-def test_certificate_fingerprint
-  "05bae8963b233406f67a584dac0cbc6be588d5afa7ccaa676f7cbe55bf98da99"
+def test_cert_fingerprint
+  fixture_fingerprint("cert-server1.pem")
+end
+
+def test_cert2
+  read_fixture("cert-server2.pem")
 end
 

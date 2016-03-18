@@ -161,6 +161,9 @@ module Hyperkit
         if accept = data.delete(:accept)
           options[:headers][:accept] = accept
         end
+        if data[:raw_body]
+          data = data[:raw_body]
+        end
       end
 
       @last_response = response = agent.call(method, URI::Parser.new.escape(path.to_s), data, options)
