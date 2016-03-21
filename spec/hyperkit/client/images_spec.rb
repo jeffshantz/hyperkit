@@ -183,6 +183,37 @@ describe Hyperkit::Client::Images do
 
   end
 
+  describe ".rename_image_alias", :vcr do
+
+    it "renames an alias" do
+      fingerprint = create_test_image("busybox/default")
+      image = client.image(fingerprint)
+
+      expect(image[:aliases].map(&:name)).to include("busybox/default")
+      expect(image[:aliases].map(&:name)).to_not include("busybox/amd64")
+
+      client.rename_image_alias("busybox/default", "busybox/amd64")
+      image = client.image(fingerprint)
+
+      expect(image[:aliases].map(&:name)).to_not include("busybox/default")
+      expect(image[:aliases].map(&:name)).to include("busybox/amd64")
+
+      delete_test_image
+    end
+
+    it "makes the correct API call" do
+			request = stub_post("/1.0/images/aliases/test").
+        with(body: hash_including({
+          name: "test2"
+         })).
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      client.rename_image_alias("test", "test2")
+      assert_requested request
+    end
+
+  end
+
   describe ".image_by_alias", :vcr do
     it "retrieves an image by its alias" do
 			image_alias = "ubuntu/xenial/amd64/default"
