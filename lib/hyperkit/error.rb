@@ -23,7 +23,14 @@ module Hyperkit
     end
   
     def self.from_async_operation(response)
-      body = JSON.parse(response[:body])
+
+      return nil if response.nil? || response[:body].empty?
+
+      begin
+        body = JSON.parse(response[:body])
+      rescue
+        return nil
+      end
 
       if body.has_key?("metadata") && body["metadata"].is_a?(Hash)
         status = body["metadata"]["status_code"].to_i
@@ -108,7 +115,7 @@ module Hyperkit
       
       if data.is_a?(Hash) && data[:error]
         err = data[:error]
-      elsif data[:metadata]
+      elsif data.is_a?(Hash) && data[:metadata]
         err = data[:metadata][:err]
       end
 
@@ -131,12 +138,12 @@ module Hyperkit
 
       message = ""
 
-      if ! data[:metadata] && ! data[:metadata][:err]
+      if ! data.is_a?(Hash) || ! data[:metadata] || ! data[:metadata][:err]
         message = "#{@response[:method].to_s.upcase} "
         message << redact_url(@response[:url].to_s) + ": "
       end
 
-      if data[:metadata] && data[:metadata][:status_code]
+      if data.is_a?(Hash) && data[:metadata] && data[:metadata][:status_code]
         message << "#{data[:metadata][:status_code]} - "
       else
         message << "#{@response[:status]} - "

@@ -50,12 +50,16 @@ describe Hyperkit::Client::Certificates do
       client.delete_certificate(test_cert_fingerprint)
     end
 
-    it "accepts a trust password when unauthenticated" do
+    it "passes on a specified trust password for unauthenticated addition of a certificate" do
+      request = stub_post("/1.0/certificates").
+          with(body: hash_including({ password: "server-trust-password" })).
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
       unauthenticated_client.create_certificate(test_cert, {
         password: "server-trust-password"
       })
-			expect(client.certificates).to include(test_cert_fingerprint)
-      client.delete_certificate(test_cert_fingerprint)
+
+      assert_requested request
     end
 
     it "makes the correct API call" do

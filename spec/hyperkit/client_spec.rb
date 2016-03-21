@@ -409,6 +409,35 @@ describe Hyperkit::Client do
       end
     end
 
+    it "raises on asynchronous errors" do
+      stub_get('/boom').
+        to_return \
+        :status => 200,
+        :headers => {
+          :content_type => "application/json",
+        },
+        :body => {
+          metadata: {
+			      id: "e81ee5e8-6cce-46fd-b010-2c595ca66ed2",
+		 	      class: "task",
+		 	      created_at: Time.parse("2016-03-21 11:00:21 -0400"),
+		 	      updated_at: Time.parse("2016-03-21 11:00:21 -0400"),
+		 	      status: "Failure",
+		 	      status_code: 400,
+		 	      resources: nil,
+		 	      metadata: nil,
+		 	      may_cancel: false,
+		 	      err:
+		        "The image already exists: c22e4941ad01ef4b5e69908b7de21105e06b8ac7a31e1ccd153826a3b15ee1ba"
+		      }
+        }.to_json
+      begin
+        Hyperkit.get('/boom')
+      rescue Hyperkit::BadRequest=> e
+        expect(e.message).to include("400 - Error: The image already exists")
+      end
+
+    end
     it "raises on unknown client errors" do
       stub_get('/user').to_return \
         :status => 418,
