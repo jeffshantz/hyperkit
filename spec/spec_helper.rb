@@ -103,6 +103,27 @@ def json_response(file)
   }
 end
 
+def create_test_image(alias_name=nil)
+  fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
+  
+  response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"))
+  client.wait_for_operation(response[:id])
+  
+  if alias_name
+    client.create_image_alias(fingerprint, alias_name)
+  end
+  
+  fingerprint
+end
+
+def delete_test_image
+  fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
+  response = client.delete_image(fingerprint)
+
+  # TODO: Remove the conditional after 2.0.0~rc5
+  client.wait_for_operation(response[:id]) if response[:id]
+end
+
 def lxd_url(url)
   return url if url =~ /^http/
 

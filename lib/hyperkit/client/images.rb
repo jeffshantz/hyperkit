@@ -138,6 +138,17 @@ module Hyperkit
         response[:metadata]
       end
 
+      # Delete an alias for an image
+      #
+      # @param alias_name [String] Alias to delete
+      #
+      # @example Delete alias "ubuntu/xenial/amd64"
+      #   Hyperkit.client.delete_image_alias("ubuntu/xenial/amd64")
+      def delete_image_alias(alias_name)
+        response = delete image_alias_path(alias_name)
+        response[:metadata]
+      end
+
       # Upload an image from a local file
       #
       # @param file [String] Path of image tarball to be uploaded
