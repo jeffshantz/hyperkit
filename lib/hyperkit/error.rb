@@ -243,6 +243,10 @@ module Hyperkit
   # none is provided
   class ImageIdentifierRequired < StandardError; end
 
+  # Raised when a method requires attributes of an alias to be 
+  # passed (e.g. description, traget), but none is provided
+  class AliasAttributesRequired < StandardError; end
+
   # Raised when a method requires a protocol to be specified
   # (e.g. "lxd" or "simplestreams"), but an invalid protocol is
   # provided
