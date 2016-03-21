@@ -111,6 +111,32 @@ module Hyperkit
         response = get image_alias_path(alias_name)
         response[:metadata]
       end
+ 
+      # Assign an alias for an image
+      #
+      # @param fingerprint [String] Fingerprint of the image
+      # @param alias_name [String] Alias to assign to the image
+      # @param options [Hash] Additional data to be passed
+      # @option options [String] :description Alias description
+      #
+      # @example Assign alias "ubuntu/xenial/amd64" to an image
+      #   Hyperkit.client.create_image_alias(
+      #     "878cf0c70e14fec80aaf4d5e923670e68c45aa89fb05a481019bf086aec42649",
+      #     "ubuntu/xenial/amd64")
+      # @example Assign alias "ubuntu/xenial/amd64" with a description
+      #   Hyperkit.client.create_image_alias(
+      #     "878cf0c70e14fec80aaf4d5e923670e68c45aa89fb05a481019bf086aec42649",
+      #     "ubuntu/xenial/amd64",
+      #     description: "Ubuntu Xenial amd64")
+      def create_image_alias(fingerprint, alias_name, options={})
+        response = post image_aliases_path, options.slice(:description).merge(
+          {
+            target: fingerprint,
+            name: alias_name
+          }
+        )
+        response[:metadata]
+      end
 
       # Upload an image from a local file
       #
@@ -370,7 +396,8 @@ module Hyperkit
       #   image = Hyperkit.client.image_by_alias("ubuntu/xenial/amd64")
       #   Hyperkit.client.delete_image(image[:fingerprint])
       def delete_image(fingerprint)
-        delete image_path(fingerprint)
+        response = delete image_path(fingerprint)
+        response[:metadata]
       end
 
       private
