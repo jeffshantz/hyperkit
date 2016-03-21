@@ -161,6 +161,31 @@ module Hyperkit
         response[:metadata]
       end
 
+      # Update an image alias
+      #
+      # @param alias_name [String] Alias to update
+      # @param options [Hash] Additional data to be passed
+      # @option options [String] :target Image fingerprint
+      # @option options [String] :description Alias description
+      #
+      # @example Update alias "ubuntu/xenial/amd64" to point to image "097..."
+      #   Hyperkit.client.update_image_alias("ubuntu/xenial/amd64",
+      #     target: "097e75d6f7419d3a5e204d8125582f2d7bdd4ee4c35bd324513321c645f0c415")
+      #
+      # @example Update alias "ubuntu/xenial/amd64" with a new description
+      #   Hyperkit.client.update_image_alias("ubuntu/xenial/amd64", description: "Ubuntu 16.04")
+      def update_image_alias(alias_name, options={})
+
+        options = options.slice(:description, :target)
+
+        if options.empty?
+          raise Hyperkit::AliasAttributesRequired.new("At least one of :target or :description required")
+        end
+
+        response = put image_alias_path(alias_name), options
+        response[:metadata]
+      end
+
       # Upload an image from a local file
       #
       # @param file [String] Path of image tarball to be uploaded

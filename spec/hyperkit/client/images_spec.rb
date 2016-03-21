@@ -214,6 +214,43 @@ describe Hyperkit::Client::Images do
 
   end
 
+  describe ".update_image_alias", :vcr do
+
+    it "updates an existing alias target" do
+			request = stub_put("/1.0/images/aliases/test").
+        with(body: hash_including({
+          target: "test-fingerprint"
+         })).
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      client.update_image_alias("test", target: "test-fingerprint")
+      assert_requested request
+    end
+
+    it "updates an existing alias description" do
+      fingerprint = create_test_image("busybox/default")
+      image = client.image(fingerprint)
+
+      a = client.image_alias("busybox/default")
+      expect(a[:description]).to be_empty
+
+      client.update_image_alias("busybox/default", description: "hello")
+
+      a = client.image_alias("busybox/default")
+      expect(a[:description]).to eq("hello")
+
+      delete_test_image
+    end
+
+    it "raises an error if no target or description is specified" do
+      expect { client.update_image_alias("busybox/default") }.to raise_error(Hyperkit::AliasAttributesRequired)
+    end
+
+    it "makes the correct API call" do
+    end
+
+  end
+
   describe ".image_by_alias", :vcr do
     it "retrieves an image by its alias" do
 			image_alias = "ubuntu/xenial/amd64/default"
