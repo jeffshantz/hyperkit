@@ -133,17 +133,13 @@ describe Hyperkit::Client::Images do
     end
 
     it "accepts an alias description" do
-      fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
-
-			response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"))
-      client.wait_for_operation(response[:id])
-
+      fingerprint = create_test_image
       client.create_image_alias(fingerprint, "busybox/default", description: "Hello world")
 
       a = client.image_alias("busybox/default")
       expect(a[:description]).to eq("Hello world")
 
-      client.delete_image(fingerprint)
+      delete_test_image
     end
 
     it "makes the correct API call" do
@@ -156,6 +152,32 @@ describe Hyperkit::Client::Images do
         to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
 
       client.create_image_alias("target_fingerprint", "alias_name", description: "desc")
+      assert_requested request
+    end
+
+  end
+
+  describe ".delete_image_alias", :vcr do
+
+    it "deletes an alias" do
+      fingerprint = create_test_image("busybox/default")
+      image = client.image(fingerprint)
+
+      expect(image[:aliases].map(&:name)).to include("busybox/default")
+
+      client.delete_image_alias("busybox/default")
+      image = client.image(fingerprint)
+
+      expect(image[:aliases].map(&:name)).to_not include("busybox/default")
+
+      delete_test_image
+    end
+
+    it "makes the correct API call" do
+			request = stub_delete("/1.0/images/aliases/test").
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      client.delete_image_alias("test")
       assert_requested request
     end
 
