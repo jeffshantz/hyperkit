@@ -9,27 +9,54 @@ module Hyperkit
     # @param [Hash] response HTTP response
     # @return [Hyperkit::Error]
     def self.from_response(response)
-      status  = response[:status].to_i
-      body    = response[:body].to_s
-      headers = response[:response_headers]
 
-      if klass =  case status
-                  when 400      then Hyperkit::BadRequest
-                  when 401      then Hyperkit::Unauthorized
-                  when 403      then Hyperkit::Forbidden
-                  when 404      then Hyperkit::NotFound
-                  when 405      then Hyperkit::MethodNotAllowed
-                  when 406      then Hyperkit::NotAcceptable
-                  when 409      then Hyperkit::Conflict
-                  when 415      then Hyperkit::UnsupportedMediaType
-                  when 422      then Hyperkit::UnprocessableEntity
-                  when 400..499 then Hyperkit::ClientError
-                  when 500      then Hyperkit::InternalServerError
-                  when 501      then Hyperkit::NotImplemented
-                  when 502      then Hyperkit::BadGateway
-                  when 503      then Hyperkit::ServiceUnavailable
-                  when 500..599 then Hyperkit::ServerError
-                  end
+      status  = response[:status].to_i
+
+      err = from_status(response, status)
+
+      if err.nil?
+        err = from_async_operation(response)
+      end
+
+      err
+
+    end
+  
+    def self.from_async_operation(response)
+
+      return nil if response.nil? || response[:body].empty?
+
+      begin
+        body = JSON.parse(response[:body])
+      rescue
+        return nil
+      end
+
+      if body.has_key?("metadata") && body["metadata"].is_a?(Hash)
+        status = body["metadata"]["status_code"].to_i
+        from_status(response, status)
+      end
+
+    end
+
+    def self.from_status(response, status)
+      if klass = case status
+        when 400      then Hyperkit::BadRequest
+        when 401      then Hyperkit::Unauthorized
+        when 403      then Hyperkit::Forbidden
+        when 404      then Hyperkit::NotFound
+        when 405      then Hyperkit::MethodNotAllowed
+        when 406      then Hyperkit::NotAcceptable
+        when 409      then Hyperkit::Conflict
+        when 415      then Hyperkit::UnsupportedMediaType
+        when 422      then Hyperkit::UnprocessableEntity
+        when 400..499 then Hyperkit::ClientError
+        when 500      then Hyperkit::InternalServerError
+        when 501      then Hyperkit::NotImplemented
+        when 502      then Hyperkit::BadGateway
+        when 503      then Hyperkit::ServiceUnavailable
+        when 500..599 then Hyperkit::ServerError
+        end
         klass.new(response)
       end
     end
@@ -84,7 +111,15 @@ module Hyperkit
     end
 
     def response_error
-      "Error: #{data[:error]}" if data.is_a?(Hash) && data[:error]
+      err = nil
+      
+      if data.is_a?(Hash) && data[:error]
+        err = data[:error]
+      elsif data.is_a?(Hash) && data[:metadata]
+        err = data[:metadata][:err]
+      end
+
+      "Error: #{err}" if err
     end
 
     def response_error_summary
@@ -101,9 +136,19 @@ module Hyperkit
     def build_error_message
       return nil if @response.nil?
 
-      message =  "#{@response[:method].to_s.upcase} "
-      message << redact_url(@response[:url].to_s) + ": "
-      message << "#{@response[:status]} - "
+      message = ""
+
+      if ! data.is_a?(Hash) || ! data[:metadata] || ! data[:metadata][:err]
+        message = "#{@response[:method].to_s.upcase} "
+        message << redact_url(@response[:url].to_s) + ": "
+      end
+
+      if data.is_a?(Hash) && data[:metadata] && data[:metadata][:status_code]
+        message << "#{data[:metadata][:status_code]} - "
+      else
+        message << "#{@response[:status]} - "
+      end
+
       message << "#{response_message}" unless response_message.nil?
       message << "#{response_error}" unless response_error.nil?
       message << "#{response_error_summary}" unless response_error_summary.nil?

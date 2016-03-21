@@ -90,6 +90,10 @@ def fixture_fingerprint(file)
   Digest::SHA256.hexdigest(read_fixture(file))
 end
 
+def cert_fingerprint(cert)
+  Digest::SHA256.hexdigest(OpenSSL::X509::Certificate.new(cert).to_der)
+end
+
 def json_response(file)
   {
     :body => fixture(file),
@@ -126,7 +130,7 @@ def test_cert
 end
 
 def test_cert_fingerprint
-  fixture_fingerprint("cert-server1.pem")
+  cert_fingerprint(read_fixture("cert-server1.pem"))
 end
 
 def test_cert2
