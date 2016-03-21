@@ -6,23 +6,39 @@ describe Hyperkit::Client::Operations do
   let(:client) { Hyperkit::Client.new }
   let(:operation) {
     {
-      "id": "b8d84888-1dc2-44fd-b386-7f679e171ba5",
-      "class": "token",
-      "created_at": "2016-02-17T16:59:27.237628195-05:00",
-      "updated_at": "2016-02-17T16:59:27.237628195-05:00",
-      "status": "Running",
-      "status_code": 103,
-      "resources": {
-          "images": [
+      id: "b8d84888-1dc2-44fd-b386-7f679e171ba5",
+      class: "token",
+      created_at: "2016-02-17T16:59:27.237628195-05:00",
+      updated_at: "2016-02-17T16:59:27.237628195-05:00",
+      status: "Running",
+      status_code: 103,
+      resources: {
+          images: [
               "/1.0/images/54c8caac1f61901ed86c68f24af5f5d3672bdc62c71d04f06df3a59e95684473"
           ]
       },
-      "metadata": {
-          "secret": "c9209bee6df99315be1660dd215acde4aec89b8e5336039712fc11008d918b0d"
+      metadata: {
+          secret: "c9209bee6df99315be1660dd215acde4aec89b8e5336039712fc11008d918b0d"
       },
-      "may_cancel": true,
-      "err": ""
+      may_cancel: true,
+      err: ""
     }
+  }
+
+  let(:failed_operation) {
+		{
+			id: "e81ee5e8-6cce-46fd-b010-2c595ca66ed2",
+		 	class: "task",
+		 	created_at: Time.parse("2016-03-21 11:00:21 -0400"),
+		 	updated_at: Time.parse("2016-03-21 11:00:21 -0400"),
+		 	status: "Failure",
+		 	status_code: 400,
+		 	resources: nil,
+		 	metadata: nil,
+		 	may_cancel: false,
+		 	err:
+		  "The image already exists: c22e4941ad01ef4b5e69908b7de21105e06b8ac7a31e1ccd153826a3b15ee1ba"
+		}
   }
 
   describe ".operations", :vcr do
@@ -93,6 +109,12 @@ describe Hyperkit::Client::Operations do
       client.wait_for_operation("b8d84888-1dc2-44fd-b386-7f679e171ba5", 5)
       assert_requested request
     end
+
+		it "raises an error if the operation fails" do
+			request = stub_get("/1.0/operations/b8d84888-1dc2-44fd-b386-7f679e171ba5/wait").
+  		  to_return(:status => 200, body: { metadata: failed_operation }.to_json, :headers => {'Content-Type' => 'application/json'})
+  		expect { client.wait_for_operation("b8d84888-1dc2-44fd-b386-7f679e171ba5") }.to raise_error(Hyperkit::Error)
+		end
 
   end
 

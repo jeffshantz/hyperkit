@@ -361,6 +361,17 @@ module Hyperkit
         response = post images_path, opts
         response[:metadata]
       end
+ 
+      # Delete an image
+      #
+      # @param fingerprint [String] Fingerprint of image to delete
+      #
+      # @example Delete an image using its fingerprint
+      #   image = Hyperkit.client.image_by_alias("ubuntu/xenial/amd64")
+      #   Hyperkit.client.delete_image(image[:fingerprint])
+      def delete_image(fingerprint)
+        delete image_path(fingerprint)
+      end
 
       private
 
