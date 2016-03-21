@@ -149,6 +149,18 @@ module Hyperkit
         response[:metadata]
       end
 
+      # Rename an image alias
+      #
+      # @param old_alias [String] Alias to rename
+      # @param new_alias [String] New alias
+      #
+      # @example Rename alias "ubuntu/xenial/amd64" to "ubuntu/xenial/default"
+      #   Hyperkit.client.rename_image_alias("ubuntu/xenial/amd64", "ubuntu/xenial/default")
+      def rename_image_alias(old_alias, new_alias)
+        response = post image_alias_path(old_alias), { name: new_alias }
+        response[:metadata]
+      end
+
       # Upload an image from a local file
       #
       # @param file [String] Path of image tarball to be uploaded
