@@ -912,5 +912,151 @@ describe Hyperkit::Client::Images do
 
   end
 
+  describe ".update_image", :vcr do
+
+    after do
+      client.delete_image(@fingerprint) if @fingerprint
+    end
+
+    it "makes the correct API call" do
+      request = stub_put("/1.0/images/test").
+        with(body: hash_including({
+          public: true,
+          properties: { hello: "world" }
+        })).
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      client.update_image("test", public: true, properties: { hello: "world" })
+      assert_requested request
+		end
+
+    context "when properties are passed" do
+
+      it "stores them with the image" do
+        @fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
+
+			  response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"),
+          properties: { description: "Busybox x86_64" })
+
+        client.wait_for_operation(response[:id])
+        image = client.image(@fingerprint)
+
+        properties = image.properties.to_hash.merge({
+          hello: "world",
+          test: 123
+        })
+
+        client.update_image(@fingerprint, properties: properties)
+        image = client.image(@fingerprint)
+
+        expect(image.properties.hello).to eq("world")
+        expect(image.properties.test).to eq("123")
+        expect(image.properties.description).to eq("Busybox x86_64")
+      end
+
+      it "overwrites the existing properties" do
+
+        @fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
+
+			  response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"),
+          properties: { description: "Busybox x86_64" })
+
+        client.wait_for_operation(response[:id])
+
+        image = client.image(@fingerprint)
+        expect(image.properties.description).to eq("Busybox x86_64")
+
+        client.update_image(@fingerprint, properties: {
+          hello: "world",
+          test: 123
+        })
+
+        image = client.image(@fingerprint)
+
+        expect(image.properties.hello).to eq("world")
+        expect(image.properties.test).to eq("123")
+        expect(image.properties.description).to be_nil
+		  end
+
+    end
+     
+    context "when 'public': true is passed" do
+
+      it "makes the image public" do
+        @fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
+
+			  response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"))
+        client.wait_for_operation(response[:id])
+
+        image = client.image(@fingerprint)
+        expect(image[:public]).to be_falsy
+
+        client.update_image(@fingerprint, public: true)
+
+        image = client.image(@fingerprint)
+        expect(image[:public]).to be_truthy
+      end
+
+    end
+
+    context "when public: false is passed" do
+
+      it "makes the image private" do
+        @fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
+
+			  response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"), public: true)
+        client.wait_for_operation(response[:id])
+
+        image = client.image(@fingerprint)
+        expect(image[:public]).to be_truthy
+
+        client.update_image(@fingerprint, public: false)
+
+        image = client.image(@fingerprint)
+        expect(image[:public]).to be_falsy
+      end
+
+    end
+
+    context "when 'auto_update': true is passed" do
+
+      it "sets the image to auto-update" do 
+      	response = client.create_image_from_remote("https://images.linuxcontainers.org:8443",
+					alias: "ubuntu/xenial/amd64", auto_update: false)
+      	response = client.wait_for_operation(response[:id])
+        @fingerprint = response[:metadata][:fingerprint]
+
+      	image = client.image(@fingerprint)
+				expect(image[:auto_update]).to be_falsy
+
+      	client.update_image(@fingerprint, auto_update: true)
+      	image = client.image(@fingerprint)
+
+				expect(image[:auto_update]).to be_truthy
+      end
+
+    end
+
+    context "when 'auto_update': false is passed" do
+
+      it "disables auto-updating" do 
+      	response = client.create_image_from_remote("https://images.linuxcontainers.org:8443",
+					alias: "ubuntu/xenial/amd64", auto_update: true)
+      	response = client.wait_for_operation(response[:id])
+        @fingerprint = response[:metadata][:fingerprint]
+
+      	image = client.image(@fingerprint)
+				expect(image[:auto_update]).to be_truthy
+
+      	client.update_image(@fingerprint, auto_update: false)
+      	image = client.image(@fingerprint)
+
+				expect(image[:auto_update]).to be_falsy
+      end
+
+    end
+
+  end
+
 end
 

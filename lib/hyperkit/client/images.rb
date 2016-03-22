@@ -448,6 +448,45 @@ module Hyperkit
         response[:metadata]
       end
 
+      # Update the attributes of an image
+      #
+      # @param fingerprint [String] Fingerprint of image to update
+      # @param options [Hash] Additional data to be passed
+      # @option options [Boolean] :auto_update Whether or not the image should be automatically updated from the source server (source image must be public and must have been referenced by alias when originally created -- not fingerprint)
+      # @option options [Hash] :properties Hash of additional properties to store with the image.  Existing properties are removed.  See the Examples section.
+      # @option options [Boolean] :public Whether or not the image should be publicly-accessible to unauthenticated users
+      #
+      # @example Set image to be publicly-accessible
+      #   Hyperkit.client.update_image("b1cf3d836196c316897d39872ff25e2d912ea933207b0c591334a67b290a5f1b",
+      #     public: true)
+      #     
+      # @example Overwrite image properties (removes all existing properties, sets "hello" property to "world")
+      #   Hyperkit.client.update_image("b1cf3d836196c316897d39872ff25e2d912ea933207b0c591334a67b290a5f1b",
+      #     properties: {
+      #       hello: "world"
+      #     }
+      #   )
+      #
+      # @example Update image properties (leaves all existing properties intact, sets "hello" property to "world")
+      #   fingerprint = "b1cf3d836196c316897d39872ff25e2d912ea933207b0c591334a67b290a5f1b"
+      #
+      #   image = Hyperkit.client.image(fingerprint)
+      #
+      #   Hyperkit.client.update_image(fingerprint)
+      #     image.properties.to_hash.merge({
+      #       hello: "world"
+      #     })
+      #   )
+      def update_image(fingerprint, options={})
+
+        opts = options.slice(:public, :auto_update)
+        opts[:properties] = stringify_properties(options[:properties]) if options[:properties]
+
+        response = put image_path(fingerprint), opts
+        response[:metadata]
+
+      end
+
       private
 
       def image_path(fingerprint)
