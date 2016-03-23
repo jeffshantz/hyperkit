@@ -106,6 +106,7 @@ Hyperkit endeavours to support the entirety of [version 1.0 of the LXD API](http
 Currently, we support:
 
 * `/1.0/certificates`
+* `/1.0/images`
 * `/1.0/networks`
 * `/1.0/operations` (except `/1.0/operations/<uuid>/websocket`)
 * `/1.0/profiles`
