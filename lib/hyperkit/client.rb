@@ -21,6 +21,9 @@ module Hyperkit
     def initialize(options = {})
       # Use options passed in, but fall back to module defaults
       Hyperkit::Configurable.keys.each do |key|
+        # Allow user to explicitly override default values by passing 'key: nil'
+        next if options.has_key?(key) && options[key].nil?
+
         instance_variable_set(:"@#{key}", options[key] || Hyperkit.instance_variable_get(:"@#{key}"))
       end
     end

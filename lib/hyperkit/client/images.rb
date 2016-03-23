@@ -21,7 +21,10 @@ module Hyperkit
       # Get information on an image by its fingerprint
       #
       # @param fingerprint [String] The image's fingerprint
+      # @param options [Hash] Additional data to be passed
+      # @option options [String] :secret Secret to access private image by untrusted client
       # @return [Hash] A hash of information about the image
+      # @see #create_image_secret
       #
       # @example Get information about an image on images.linuxcontainers.org
       #   Hyperkit.client.api_endpoint = "https://images.linuxcontainers.org:8443"
@@ -37,15 +40,25 @@ module Hyperkit
       #     :created_at=>2016-03-15 01:20:10 UTC,
       #     :fingerprint=> "45bcc353f629b23ce30ef4cca14d2a4990c396d85ea68905795cc7579c145123"
       #   }
-      def image(fingerprint)
-        response = get image_path(fingerprint)
+      # @example Get information about a private image using a secret:
+      #   Hyperkit.client.image("45bcc353f629b23ce30ef4cca14d2a4990c396d85ea68905795cc7579c145123",
+      #     secret: "secret-issued-by-create_image_secret")
+      def image(fingerprint, options={})
+
+        url = image_path(fingerprint)
+        url << "?secret=#{options[:secret]}" if options[:secret]
+
+        response = get url
         response[:metadata]
       end
 
       # Get information on an image by one of its aliases
       #
       # @param alias_name [String] An alias of the image
+      # @param options [Hash] Additional data to be passed
+      # @option options [String] :secret Secret to access private image by untrusted client
       # @return [Hash] A hash of information about the image
+      # @see #create_image_secret
       #
       # @example Get information about an image on images.linuxcontainers.org
       #   Hyperkit.client.api_endpoint = "https://images.linuxcontainers.org:8443"
@@ -67,12 +80,15 @@ module Hyperkit
       #     :properties=>{:description=>"Ubuntu xenial (amd64) (20160316_03:49)"},
       #     :public=>true}
       #   }
-      def image_by_alias(alias_name)
+      #
+      # @example Get information about a private image using a secret:
+      #   Hyperkit.client.image_by_alias("ubuntu/xenial/amd64",
+      #     secret: "secret-issued-by-create_image_secret")
+      def image_by_alias(alias_name, options={})
         a = image_alias(alias_name)
-        image(a[:target])
+        image(a[:target], options)
       end
 
- 
       # List of image aliases on the server (public or private)
       #
       # @return [Array<String>] An array of image aliases
@@ -485,6 +501,30 @@ module Hyperkit
         response = put image_path(fingerprint), opts
         response[:metadata]
 
+      end
+ 
+      # Generate a secret for an image that can be used by an untrusted client 
+      # to retrieve information on and/or export a private image.
+      #
+      # The secret is automatically invalidated 5 seconds after first using it 
+      # (e.g. after calling Hyperkit.client.image(fingerprint, secret: "...").
+      # This allows one to both retrieve the image information and then export it
+      # with the same secret.
+      #
+      # @param fingerprint [String] Fingerprint of the image
+      # @return [String] A valid secret for the image
+      #
+      # @example Generate a secret for an image
+      #   Hyperkit.client.create_image_secret("878cf0c70e14fec80aaf4d5e923670e68c45aa89fb05a481019bf086aec42649")
+      def create_image_secret(fingerprint)
+        response = post File.join(image_path(fingerprint), "secret")
+
+        # Sigh
+        if response && response.metadata && response.metadata.metadata
+          response.metadata.metadata.secret
+        else
+          nil
+        end
       end
 
       private

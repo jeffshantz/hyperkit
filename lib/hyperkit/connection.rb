@@ -83,40 +83,6 @@ module Hyperkit
       request :head, url, parse_query_and_convenience_headers(options)
     end
 
-    # Make one or more HTTP GET requests, optionally fetching
-    # the next page of results from URL in Link response header based
-    # on value in {#auto_paginate}.
-    #
-    # @param url [String] The path, relative to {#api_endpoint}
-    # @param options [Hash] Query and header params for request
-    # @param block [Block] Block to perform the data concatination of the
-    #   multiple requests. The block is called with two parameters, the first
-    #   contains the contents of the requests so far and the second parameter
-    #   contains the latest response.
-    # @return [Sawyer::Resource]
-    def paginate(url, options = {}, &block)
-      opts = parse_query_and_convenience_headers(options.dup)
-      if @auto_paginate || @per_page
-        opts[:query][:per_page] ||=  @per_page || (@auto_paginate ? 100 : nil)
-      end
-
-      data = request(:get, url, opts.dup)
-
-      if @auto_paginate
-        while @last_response.rels[:next] && rate_limit.remaining > 0
-          @last_response = @last_response.rels[:next].get(:headers => opts[:headers])
-          if block_given?
-            yield(data, @last_response)
-          else
-            data.concat(@last_response.data) if @last_response.data.is_a?(Array)
-          end
-        end
-
-      end
-
-      data
-    end
-
     # Hypermedia agent for the GitHub API
     #
     # @return [Sawyer::Agent]
@@ -185,13 +151,21 @@ module Hyperkit
       opts = {
         :links_parser => Sawyer::LinkParsers::Simple.new,
       }
-      conn_opts = @connection_options
+      conn_opts = {}
       conn_opts[:builder] = @middleware if @middleware
       conn_opts[:proxy] = @proxy if @proxy
 
-      conn_opts[:ssl] ||= {}
-      conn_opts[:ssl][:client_cert] = OpenSSL::X509::Certificate.new(File.read(client_cert)) if client_cert && File.exist?(client_cert)
-      conn_opts[:ssl][:client_key] = OpenSSL::PKey::RSA.new(File.read(client_key)) if client_key && File.exist?(client_key)
+      conn_opts[:ssl] = {
+        verify: verify_ssl
+      }
+
+      if client_cert && File.exist?(client_cert)
+        conn_opts[:ssl][:client_cert] = OpenSSL::X509::Certificate.new(File.read(client_cert))
+      end
+      
+      if client_key && File.exist?(client_key)
+        conn_opts[:ssl][:client_key] = OpenSSL::PKey::RSA.new(File.read(client_key)) 
+      end
 
       opts[:faraday] = Faraday.new(conn_opts)
 

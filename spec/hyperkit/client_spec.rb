@@ -24,9 +24,8 @@ describe Hyperkit::Client do
 
       before do
         @opts = {
-          :connection_options => {:ssl => {:verify => false}},
           :client_cert => '/tmp/cert',
-          :client_key  => '/tmp/key'
+          :client_key => '/tmp/key'
         }
       end
 
@@ -131,7 +130,7 @@ describe Hyperkit::Client do
 
   describe ".last_response", :vcr do
     it "caches the last agent response" do
-      client = Hyperkit.client
+      client = Hyperkit::Client.new(api_endpoint: 'https://lxd.example.com:8443', verify_ssl: false)
       expect(client.last_response).to be_nil
       client.get "/"
       expect(client.last_response.status).to eq(200)
