@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'tmpdir'
 
 describe Hyperkit::Client::Images do
 
@@ -1086,7 +1087,7 @@ describe Hyperkit::Client::Images do
 
   end
 
-  describe ".create_image_secret" do
+  describe ".create_image_secret", :vcr do
 
     it "creates a secret for an image" do
       fingerprint = create_test_image
@@ -1110,5 +1111,75 @@ describe Hyperkit::Client::Images do
 
   end
 
-end
+  describe ".export_image", :vcr do
 
+    after do
+      client.delete_image(@fingerprint) if @fingerprint
+    end
+
+    it "exports an image to a file" do
+      @fingerprint = create_test_image
+
+      Dir.mktmpdir("hyperkit") do |dir|
+        output_file = client.export_image(@fingerprint, dir)
+        checksum = Digest::SHA256.hexdigest(File.read(output_file))
+        expect(checksum).to eq(@fingerprint)
+      end
+
+    end
+
+    it "returns the full path to the exported file" do
+      @fingerprint = create_test_image
+      image = client.image(@fingerprint)
+
+      Dir.mktmpdir("hyperkit") do |dir|
+        output_file = client.export_image(@fingerprint, dir)
+        expect(output_file).to eq(File.join(dir, image.filename))
+      end
+
+    end
+
+    it "allows the filename to be overridden" do
+      @fingerprint = create_test_image
+      image = client.image(@fingerprint)
+
+      Dir.mktmpdir("hyperkit") do |dir|
+        output_file = client.export_image(@fingerprint, dir, filename: "test.tar.xz")
+        expect(output_file).to eq(File.join(dir, "test.tar.xz"))
+      end
+
+    end
+
+    it "makes the correct API calls" do
+			request1 = stub_get("/1.0/images/test").
+        to_return(status: 200, body: { metadata: { filename: "test.tar.xz" }}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+			request2 = stub_get("/1.0/images/test/export").
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      Dir.mktmpdir("hyperkit") do |dir|
+        client.export_image("test", dir)
+      end
+
+      assert_requested request1
+      assert_requested request2
+    end
+
+    it "accepts a secret" do
+			request1 = stub_get("/1.0/images/test").
+        to_return(status: 200, body: { metadata: { filename: "test.tar.xz" }}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+			request2 = stub_get("/1.0/images/test/export?secret=really-secret").
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      Dir.mktmpdir("hyperkit") do |dir|
+        client.export_image("test", dir, secret: "really-secret")
+      end
+
+      assert_requested request1
+      assert_requested request2
+    end
+
+  end
+
+end
