@@ -14,7 +14,7 @@ module Hyperkit
       #   Hyperkit.client.containers #=> ["container1", "container2", "container3"]
       def containers
         response = get containers_path 
-        response[:metadata].map { |path| path.split('/').last }
+        response.metadata.map { |path| path.split('/').last }
       end
 
       # Get information on a container
@@ -54,9 +54,21 @@ module Hyperkit
       #       :status => "Stopped",
       #       :status_code => 102
       #   }
-      def container(name, options={})
-        response = get container_path(name)
-        response[:metadata]
+      def container(name)
+        get(container_path(name)).metadata
+      end
+
+      # Retrieve the current state of a container
+      #
+      # @param name [String] Container name
+      # @return [Sawyer::Resource] Container state
+      #
+      # @example Get container state
+      #   Hyperkit.client.container_state("test-container") #=> {
+      #   }
+      def container_state(name)
+        url = File.join(container_path(name), "state")
+        get(url).metadata
       end
 
       private
