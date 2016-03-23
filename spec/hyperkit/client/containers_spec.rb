@@ -55,4 +55,29 @@ describe Hyperkit::Client::Containers do
 
   end
 
+  describe ".container_state", :vcr do
+
+    it "returns the current state of a container" do
+
+      # TODO: Create a container
+
+      state = client.container_state("test-container")
+
+      expect(state.status).to eq("Running")
+      expect(state.network.lo.type).to eq("loopback")
+      expect(state.pid).to be_a(Fixnum)
+
+      # TODO: Delete the container
+    end
+
+    it "makes the correct API call" do
+			request = stub_get("/1.0/containers/test/state").
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      client.container_state("test")
+      assert_requested request
+    end
+
+  end
+
 end
