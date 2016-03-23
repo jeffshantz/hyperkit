@@ -527,6 +527,48 @@ module Hyperkit
         end
       end
 
+      # Export an image to a local file.
+      #
+      # @param fingerprint [String] Fingerprint of the image
+      # @param output_dir [String] Output directory
+      # @param options [Hash] Additional data to be passed
+      # @option options [String] :filename Name of file in which to store exported image (default: image filename obtained from the server)
+      # @option options [String] :secret Secret to export private image by untrusted client
+      # @return [String] The name of the file saved
+      # @see #create_image_secret
+      #
+      # @example Export image
+      #   image = Hyperkit.client.image_by_alias("busybox/default/amd64")
+      #   Hyperkit.client.export_image(image.fingerprint, "/tmp") => "/tmp/busybox-v1.21.1-lxc.tar.xz"
+      #
+      # @example Override output filename
+      #   image = Hyperkit.client.image_by_alias("busybox/default/amd64")
+      #   Hyperkit.client.export_image(image.fingerprint,
+      #     "/tmp", filename: "test.tar.xz") => "/tmp/test.tar.xz"
+      #
+      # @example Export private image via secret
+      #   image = Hyperkit.client.image_by_alias("busybox/default/amd64")
+      #   Hyperkit.client.export_image(image.fingerprint, 
+      #     "/tmp", secret: "secret-issued-by-create_image_secret") => "/tmp/busybox-v1.21.1-lxc.tar.xz"
+      def export_image(fingerprint, output_dir, options={})
+
+        img = image(fingerprint)
+        filename = options[:filename] || img.filename
+        output_file = File.join(output_dir, filename)
+
+        url = File.join(image_path(fingerprint), "export")
+        url << "?secret=#{options[:secret]}" if options[:secret]
+
+        response = get url
+
+        File.open(output_file, "wb") do |f|
+          f.write response
+        end
+
+        output_file
+
+      end
+
       private
 
       def image_path(fingerprint)
