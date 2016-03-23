@@ -28,7 +28,7 @@ RSpec.configure do |config|
   config.before(:each) do
     Hyperkit.reset!
     Hyperkit.api_endpoint = 'https://lxd.example.com:8443'
-    Hyperkit.connection_options[:ssl][:verify] = false
+    Hyperkit.verify_ssl = false
   end
 end
 
@@ -141,9 +141,7 @@ def use_vcr_placeholder_for(text, replacement)
 end
 
 def unauthenticated_client
-  cli = Hyperkit::Client.new
-  cli.client_cert = cli.client_key = nil
-  cli
+  Hyperkit::Client.new(verify_ssl: false, client_cert: nil, client_key: nil)
 end
 
 def test_cert

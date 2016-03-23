@@ -56,6 +56,18 @@ describe Hyperkit::Client::Images do
       assert_requested request
     end
 
+    it "accepts a secret" do
+
+			request = stub_get("/1.0/images/45bcc353f629b23ce30ef4cca14d2a4990c396d85ea68905795cc7579c145123?secret=shhhh").
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      client.image("45bcc353f629b23ce30ef4cca14d2a4990c396d85ea68905795cc7579c145123",
+        secret: "shhhh")
+
+      assert_requested request
+
+    end
+
   end
 
   describe ".image_aliases", :vcr do
@@ -275,6 +287,22 @@ describe Hyperkit::Client::Images do
       client.image_by_alias(image_alias)
       assert_requested request1
       assert_requested request2
+    end
+
+    it "accepts a secret" do
+			image_alias = "ubuntu/xenial/amd64/default"
+      fingerprint = "45bcc353f629b23ce30ef4cca14d2a4990c396d85ea68905795cc7579c145123"
+
+			request1 = stub_get("/1.0/images/aliases/#{image_alias}").
+        to_return(status: 200, body: { metadata: {target: fingerprint, name: image_alias}}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+			request2 = stub_get("/1.0/images/#{fingerprint}?secret=shhhh").
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      client.image_by_alias(image_alias, secret: "shhhh")
+      assert_requested request1
+      assert_requested request2
+
     end
 
   end
@@ -1054,6 +1082,30 @@ describe Hyperkit::Client::Images do
 				expect(image[:auto_update]).to be_falsy
       end
 
+    end
+
+  end
+
+  describe ".create_image_secret" do
+
+    it "creates a secret for an image" do
+      fingerprint = create_test_image
+
+      secret = client.create_image_secret(fingerprint)
+      expect { unauthenticated_client.image(fingerprint) }.to raise_error(Hyperkit::NotFound)
+
+      image = unauthenticated_client.image(fingerprint, secret: secret)
+      expect(image.fingerprint).to eq(fingerprint)
+
+      delete_test_image
+    end
+
+    it "makes the correct API call" do
+			request = stub_post("/1.0/images/test/secret").
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      client.create_image_secret("test")
+      assert_requested request
     end
 
   end

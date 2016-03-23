@@ -29,11 +29,8 @@ module Hyperkit
     #   @return [String] Base URL for API requests. default: https://localhost:8443/
     # @!attribute client_cert
     #   @return [String] Client certificate for authentication
-    # @!attribute client_key
+    # @!attribute client_key 
     #   @return [String] Client key for authentication
-    # @!attribute connection_options
-    #   @see https://github.com/lostisland/faraday
-    #   @return [Hash] Configure connection options for Faraday
     # @!attribute default_media_type
     #   @return [String] Configure preferred media type (for API versioning, for example)
     # @!attribute middleware
@@ -44,9 +41,11 @@ module Hyperkit
     #   @return [String] URI for proxy server
     # @!attribute user_agent
     #   @return [String] Configure User-Agent header for requests.
+    # @!attribute verify_ssl
+    #   @return [Boolean] Whether or not to verify peer SSL certificate
 
-    attr_accessor :client_cert, :client_key, :connection_options,
-                  :default_media_type, :middleware, :proxy, :user_agent
+    attr_accessor :client_cert, :client_key, :default_media_type, :middleware,
+                  :proxy, :user_agent, :verify_ssl
     attr_writer :api_endpoint
 
     class << self
@@ -58,11 +57,11 @@ module Hyperkit
           :api_endpoint,
           :client_cert,
           :client_key,
-          :connection_options,
           :default_media_type,
           :middleware,
           :proxy,
           :user_agent,
+          :verify_ssl
         ]
       end
     end

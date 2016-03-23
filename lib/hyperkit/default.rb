@@ -32,7 +32,7 @@ module Hyperkit
     API_ENDPOINT = "https://localhost:8443".freeze
 
     # Default client certificate file for authentication
-    CLIENT_CERTIFICATE = File.join(ENV['HOME'], '.config', 'lxc', 'client.crt').freeze
+    CLIENT_CERT = File.join(ENV['HOME'], '.config', 'lxc', 'client.crt').freeze
 
     # Default client key file for authentication
     CLIENT_KEY = File.join(ENV['HOME'], '.config', 'lxc', 'client.key').freeze
@@ -49,7 +49,6 @@ module Hyperkit
       builder.use Hyperkit::Response::RaiseError
       builder.adapter Faraday.default_adapter
     end
-
 
     # Default User Agent header string
     USER_AGENT   = "Hyperkit Ruby Gem #{Hyperkit::VERSION}".freeze
@@ -89,16 +88,16 @@ module Hyperkit
         ENV['HYPERKIT_API_ENDPOINT'] || API_ENDPOINT
       end
 
-      # Default client certificate file from ENV or {CLIENT_CERTIFICATE}
+      # Default client certificate file from ENV or {CLIENT_CERT}
       # @return [String]
       def client_cert
-        ENV['HYPERKIT_CLIENT_CERTIFICATE'] || CLIENT_CERTIFICATE
+        ENV['HYPERKIT_CLIENT_CERT'] || CLIENT_CERT
       end
 
       # Default client key file from ENV or {CLIENT_KEY}
       # @return [String]
       def client_key
-        ENV['HYPERKIT_CLIENT_KEY'] || CLIENT_KEY
+        ENV['HYPERKIT_KEY'] || CLIENT_KEY
       end
 
       # Default middleware stack for Faraday::Connection
@@ -118,6 +117,12 @@ module Hyperkit
       # @return [String]
       def user_agent
         ENV['HYPERKIT_USER_AGENT'] || USER_AGENT
+      end
+
+      # Default to verifying peer SSL certificate
+      # @return [Boolean]
+      def verify_ssl
+        true
       end
 
     end

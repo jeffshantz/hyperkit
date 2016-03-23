@@ -40,7 +40,7 @@ require 'pry'
 client = Hyperkit.client
 
 # If using the default self-signed LXD certificate, turn off SSL verification
-client.connection_options[:ssl][:verify] = false
+client.verify_ssl = false
 
 # List all profiles
 profiles = client.profiles
