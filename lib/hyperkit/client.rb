@@ -1,6 +1,7 @@
 require 'hyperkit/configurable'
 require 'hyperkit/connection'
 require 'hyperkit/client/certificates'
+require 'hyperkit/client/containers'
 require 'hyperkit/client/images'
 require 'hyperkit/client/networks'
 require 'hyperkit/client/operations'
@@ -13,6 +14,7 @@ module Hyperkit
     include Hyperkit::Configurable
     include Hyperkit::Connection
     include Hyperkit::Client::Certificates
+    include Hyperkit::Client::Containers
     include Hyperkit::Client::Images
     include Hyperkit::Client::Networks
     include Hyperkit::Client::Operations
