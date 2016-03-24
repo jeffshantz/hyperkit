@@ -102,6 +102,17 @@ module Hyperkit
         post(container_path(old_name), { "name": new_name }).metadata
       end
 
+      # Delete a container.  Throws an error if the container is running.
+      #
+      # @param name [String] Container name
+      #
+      # @example Delete container "test"
+      #   Hyperkit.client.delete_container("test")
+      #
+      def delete_container(name)
+        delete(container_path(name)).metadata
+      end
+
       # Retrieve the current state of a container
       #
       # @param name [String] Container name

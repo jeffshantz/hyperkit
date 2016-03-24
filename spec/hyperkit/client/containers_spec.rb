@@ -385,6 +385,37 @@ describe Hyperkit::Client::Containers do
 
   end
 
+  describe ".delete_container", :vcr do
+
+    it "deletes the container" do
+
+      # TODO: Create and stop a container
+      expect(client.containers).to include("test-container")
+
+      response = client.delete_container("test-container")
+      client.wait_for_operation(response.id)
+
+      expect(client.containers).to_not include("test-container")
+    end
+
+    it "raises an exception if the container is running" do
+
+      # TODO: Create and start a container
+      expect { client.delete_container("test-container") }.to raise_error(Hyperkit::BadRequest)
+      # TODO: Delete the container
+
+    end
+
+    it "makes the correct API call" do
+      request = stub_delete("/1.0/containers/test").
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      client.delete_container("test")
+      assert_requested request
+    end
+
+  end
+
   describe ".rename_container", :vcr do
 
     it "renames a container" do
