@@ -347,6 +347,8 @@ describe Hyperkit::Client::Containers do
   describe ".update_container", :vcr do
 
 		it "updates the configuration of a container" do
+      # TODO: Create and start a container
+
 			container = client.container("test-container")
 			expect(container.architecture).to eq("x86_64")
 			expect(container.ephemeral).to be_falsy
@@ -366,6 +368,8 @@ describe Hyperkit::Client::Containers do
 			expect(container.devices.eth1.type).to eq("nic")
 			expect(container.devices.eth1.parent).to eq("lxcbr0")
 			expect(container.devices.eth1.nictype).to eq("bridged")
+
+      # TODO: Delete the container
 		end
 
 		it "makes the correct API call" do
@@ -378,6 +382,70 @@ describe Hyperkit::Client::Containers do
       client.update_container("test", {"hello": "world"})
       assert_requested request
 		end
+
+  end
+
+  describe ".rename_container", :vcr do
+
+    it "renames a container" do
+      # TODO: Create and stop a container
+
+      expect(client.containers).to include("test-container")
+      expect(client.containers).to_not include("test-container-2")
+
+      response = client.rename_container("test-container", "test-container-2")
+      client.wait_for_operation(response.id)
+
+      expect(client.containers).to_not include("test-container")
+      expect(client.containers).to include("test-container-2")
+
+      # TODO: Delete the container
+    end
+
+    it "fails if the container is running" do
+      # TODO: Create and start a container
+
+      response = client.rename_container("test-container", "test-container-2")
+      expect { client.wait_for_operation(response.id) }.to raise_error(Hyperkit::BadRequest)
+
+      # TODO: Delete the container
+    end
+
+    it "makes the correct API call" do
+			request = stub_post("/1.0/containers/test").
+        with(body: hash_including({
+          name: "test2"
+        })).
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      client.rename_container("test", "test2")
+      assert_requested request
+    end
+  end
+
+  describe ".prepare_container_for_migration", :vcr do
+    
+    it "returns secrets used by a target LXD instance to migrate a container" do
+      # TODO: Create and start a container
+
+      response = client.prepare_container_for_migration("test-container")
+      expect(response.control).to_not be_nil
+      expect(response.criu).to_not be_nil
+      expect(response.fs).to_not be_nil
+
+      # TODO: Delete the container
+    end
+
+    it "makes the correct API call" do
+			request = stub_post("/1.0/containers/test").
+        with(body: hash_including({
+          migration: true
+        })).
+        to_return(status: 200, body: { metadata: {} }.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      client.prepare_container_for_migration("test")
+      assert_requested request
+    end
 
   end
 

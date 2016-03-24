@@ -98,6 +98,10 @@ module Hyperkit
         put(container_path(name), config.to_hash).metadata
       end
 
+      def rename_container(old_name, new_name)
+        post(container_path(old_name), { "name": new_name }).metadata
+      end
+
       # Retrieve the current state of a container
       #
       # @param name [String] Container name
@@ -225,6 +229,24 @@ module Hyperkit
         response = put(container_state_path(name), opts.merge(action: "unfreeze"))
         response.metadata
 
+      end
+
+      # Prepare to migrate a container.  Generates secrets to be passed to #migrate_container.
+      #
+      # Note that CRIU must be installed on the server, or LXD will return a
+      # 500 error.  On Ubuntu, you can install it with 
+      # <code>sudo apt-get install criu</code>.
+      #
+      # @param name [String] Container name
+      #
+      # @example Generate migration secrets for container "test"
+      #   Hyperkit.client.prepare_container_for_migration("test") #=> {
+      #    :control=>"f972d7b34a5a6dab7592a18bcd3f0b144d013861826518cdfd44083d5d942f97",
+      #    :criu=>"3788b604669033f3cc8705772f51d8c9d7377a6705bca2bae156cf2bd6799291",
+      #    :fs=>"6783685058a694c77651187fa93d2113d2ba8cb56b24a69ed3f3dc98bb74642f"
+      #  }
+      def prepare_container_for_migration(name)
+        post(container_path(name), { "migration": true }).metadata.metadata
       end
 
       alias_method :resume_container, :unfreeze_container
