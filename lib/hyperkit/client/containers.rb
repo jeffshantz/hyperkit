@@ -58,6 +58,46 @@ module Hyperkit
         get(container_path(name)).metadata
       end
 
+      # Update the configuration of a container.
+      #
+      # Configuration is overwritten, not merged.  Accordingly, clients should
+      # first call container to obtain the current configuration of a
+      # container.  The resulting object should be modified and then passed to
+      # update_container.
+      #
+      # Note that LXD does not allow certain attributes to be changed (e.g.
+      # <code>status</code>, <code>status_code</code>, <code>stateful</code>,
+      # <code>name</code>, etc.) through this call.
+      #
+      # @param name [String] Container name
+      # @param config [Sawyer::Resource|Hash] Container configuration obtained from #container
+      #
+      # @example Add 'eth1' device to a container
+      #   container = Hyperkit.client.container("test-container")
+			#   container.devices.eth1 = {nictype: "bridged", parent: "lxcbr0", type: "nic"}
+      #   Hyperkit.client.update_container("test-container", container)
+      #
+      # @example Change container to be ephemeral (i.e. it will be deleted when stopped)
+      #   container = Hyperkit.client.container("test-container")
+			#   container.ephemeral = true
+      #   Hyperkit.client.update_container("test-container", container)
+      #   
+      # @example Change container's AppArmor profile to 'unconfined'.
+      #   container = Hyperkit.client.container("test-container")
+      #
+      #   # Note: due to a bug in Sawyer::Resource, the following will fail
+      #   container.config[:"raw.lxc"] = "lxc.aa_profile=unconfined"
+      #
+      #   # Instead, convert 'config' to a Hash, and update the Hash
+      #   container.config = container.config.to_hash
+      #   container.config["raw.lxc"] = "lxc.aa_profile=unconfined"
+      #
+      #   Hyperkit.client.update_container("test-container", container)
+      #
+      def update_container(name, config)
+        put(container_path(name), config.to_hash).metadata
+      end
+
       # Retrieve the current state of a container
       #
       # @param name [String] Container name
