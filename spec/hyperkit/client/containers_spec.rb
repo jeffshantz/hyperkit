@@ -344,4 +344,41 @@ describe Hyperkit::Client::Containers do
 
   end
 
+  describe ".update_container", :vcr do
+
+		it "updates the configuration of a container" do
+			container = client.container("test-container")
+			expect(container.architecture).to eq("x86_64")
+			expect(container.ephemeral).to be_falsy
+			expect(container.devices.to_hash.keys).to eq([:root])
+
+			container.architecture = "i686"
+			container.ephemeral = true
+			container.devices.eth1 = {nictype: "bridged", parent: "lxcbr0", type: "nic"}
+
+			response = client.update_container("test-container", container)
+			client.wait_for_operation(response.id)
+
+			container = client.container("test-container")
+			expect(container.architecture).to eq("i686")
+			expect(container.ephemeral).to be_truthy
+			expect(container.devices.to_hash.keys.sort).to eq([:eth1, :root])
+			expect(container.devices.eth1.type).to eq("nic")
+			expect(container.devices.eth1.parent).to eq("lxcbr0")
+			expect(container.devices.eth1.nictype).to eq("bridged")
+		end
+
+		it "makes the correct API call" do
+      request = stub_put("/1.0/containers/test").
+        with(body: hash_including({
+					hello: "world"
+        })).
+        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      client.update_container("test", {"hello": "world"})
+      assert_requested request
+		end
+
+  end
+
 end
