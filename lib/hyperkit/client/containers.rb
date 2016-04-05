@@ -69,7 +69,7 @@ module Hyperkit
       # @option options [String] :architecture Architecture of the container (e.g. <code>x86_64</code>).  By default, this will be obtained from the image metadata
       # @option options [String] :certificate PEM certificate to use to authenticate with the remote server. If not specified, and the source image is private, the target LXD server's certificate is used for authentication.  <b>This option is valid only when transferring an image from a remote server using the <code>:server</code> option.</b>
       # @option options [Hash] :config Container configuration
-      # @option options [Boolean] :ephemeral Whether to make the image ephemeral (i.e. delete it when it is stopped; default: <code>false</code>)
+      # @option options [Boolean] :ephemeral Whether to make the container ephemeral (i.e. delete it when it is stopped; default: <code>false</code>)
       # @option options [Boolean] :empty Whether to make an empty container (i.e. not from an image).  Specifying <code>true</code> will cause LXD to create a container with no rootfs.  That is, /var/lib/lxd/<container-name> will simply be an empty directly.  One can then create a rootfs directory within this directory and populate it manually.  This is useful when migrating LXC containers to LXD.
       # @option options [String] :fingerprint SHA-256 fingerprint of the source image.  <b>Either <code>:alias</code>, <code>:fingerprint</code>, <code>:properties</code>, or <code>empty: true</code> must be specified</b>.
       # @option options [Array] :profiles List of profiles to be applied to the container (default: <code>[]</code>)
@@ -145,7 +145,7 @@ module Hyperkit
       # @param options [Hash] Additional data to be passed
       # @option options [String] :architecture Architecture of the container (e.g. <code>x86_64</code>).  By default, this will be obtained from the image metadata
       # @option options [Hash] :config Container configuration
-      # @option options [Boolean] :ephemeral Whether to make the image ephemeral (i.e. delete it when it is stopped; default: <code>false</code>)
+      # @option options [Boolean] :ephemeral Whether to make the container ephemeral (i.e. delete it when it is stopped; default: <code>false</code>)
       # @option options [Array] :profiles List of profiles to be applied to the container (default: <code>[]</code>)
       #
       # @example Copy container
@@ -226,7 +226,7 @@ module Hyperkit
         put(container_path(name), config).metadata
       end
 
-      # Rename a container.
+      # Rename a container
       #
       # @param old_name [String] Existing container name
       # @param new_name [String] New container name
@@ -379,7 +379,7 @@ module Hyperkit
 
       alias_method :resume_container, :unfreeze_container
 
-      # Prepare to migrate a container.  Generates source data to be passed to #migrate_container.
+      # Prepare to migrate a container or snapshot.  Generates source data to be passed to #migrate.
       #
       # Note that CRIU must be installed on the server to migrate a running container, or LXD will
       # return a 500 error.  On Ubuntu, you can install it with 
@@ -387,7 +387,7 @@ module Hyperkit
       #
       # @param name [String] Container name
       # @example Retrieve migration source data for container "test"
-      #   Hyperkit.client.init_container_migration("test") #=> {
+      #   Hyperkit.client.init_migration("test") #=> {
       #     :architecture => "x86_64",
       #     :config => {
       #       :"volatile.base_image" => "b41f6b96f103335eafbf38ba65488eda66b05b08b590130e473803631d66ff38",
@@ -406,27 +406,56 @@ module Hyperkit
       #     },
       #     :certificate => "source server SSL certificate"
       #   }
-      def init_container_migration(name)
-        response = post(container_path(name), { "migration": true })
+      # @example Retrieve migration source data for snapshot "snap" of container "test"
+      #   Hyperkit.client.init_migration("test", "snap") #=> {
+      #     :architecture => "x86_64",
+      #     :config => {
+      #       :"volatile.apply_template" => "create",
+      #       :"volatile.base_image" => "b41f6b96f103335eafbf38ba65488eda66b05b08b590130e473803631d66ff38",
+      #       :"volatile.eth0.hwaddr" => "00:16:3e:e9:d5:5c",
+      #       :"volatile.last_state.idmap" =>
+      #         "[{\"Isuid\":true,\"Isgid\":false,\"Hostid\":231072,\"Nsid\":0,\"Maprange\":65536},{\"Isuid\":false,\"Isgid\":true,\"Hostid\":231072,\"Nsid\":0,\"Maprange\":65536}]"
+      #     },
+      #     :profiles => ["default"],
+      #     :websocket => {
+      #       :url => "https://192.168.103.101:8443/1.0/operations/a30aca8e-8ff3-4437-b1da-bb28b43ee876",
+      #       :secrets => {
+      #         :control => "a6f8d21ebfe9ec76bf56585c98fd6d700fd43edee513ce61e48e1abeef479106",
+      #         :criu => "c8601ec0d07f97f206835dde5783640c08640e9b27e45624d8555546b0cca327",
+      #         :fs => "ddf9d064331b9f3728d098873a8a89a7742b8e656f2cd0815f0aee4777ff2b54"
+      #       }
+      #     },
+      #     :certificate => "source server SSL certificate"
+      #   }
+      def init_migration(container, snapshot=nil)
+
+        if snapshot
+          url = container_snapshot_path(container, snapshot)
+          source = container_snapshot(container, snapshot)
+        else
+          url = container_path(container)
+          source = container(container)
+        end
+
+        response = post(url, { "migration": true })
         agent = response.agent
 
-        source_container = container(name)
-        
-        source = {
-          architecture: source_container.architecture,
-          config: source_container.config.to_hash,
-          profiles: source_container.profiles,
+        source_data = {
+          architecture: source.architecture,
+          config: source.config.to_hash,
+          profiles: source.profiles,
           websocket: {
             url: File.join(api_endpoint, response.operation),
             secrets: response.metadata.metadata.to_hash,
           },
-          certificate: get("/1.0").metadata.environment.certificate
+          certificate: get("/1.0").metadata.environment.certificate,
+          snapshot: ! snapshot.nil?
         }
 
-        Sawyer::Resource.new(response.agent, source)
+        Sawyer::Resource.new(response.agent, source_data)
       end
 
-      # Migrate a remote container to the server.  
+      # Migrate a remote container or snapshot to the server
       #
       # Note that CRIU must be installed on the server to migrate a running container, or LXD will
       # return a 500 error.  On Ubuntu, you can install it with 
@@ -436,36 +465,40 @@ module Hyperkit
       # container has profiles applied to it that do not exist on the target LXD instance, this
       # method will throw an exception.
       #
-      # @param source [Sawyer::Resource] Source data retrieve from the remote server with #init_container_migration
+      # @param source [Sawyer::Resource] Source data retrieve from the remote server with #init_migration
       # @param dest_name [String] Name of the new container
       # @param options [Hash] Additional data to be passed
       # @option options [String] :architecture Architecture of the container (e.g. <code>x86_64</code>).  By default, this will be obtained from the image metadata
       # @option options [String] :certificate PEM certificate of the source server.  If not specified, defaults to the certificate returned by the source server in the <code>source</code> parameter.
       # @option options [Hash] :config Container configuration
-      # @option options [Boolean] :ephemeral Whether to make the image ephemeral (i.e. delete it when it is stopped; default: <code>false</code>)
+      # @option options [Boolean] :ephemeral Whether to make the container ephemeral (i.e. delete it when it is stopped; default: <code>false</code>)
       # @option options [Boolean] :move Whether the container is being moved (<code>true</code>) or copied (<code>false</code>).  Note that this does not actually delete the container from the remote LXD instance.  Specifying <code>move: true</code> prevents regenerating volatile data (such as a container's MAC addresses), while <code>move: false</code> will regenerate all of this data.  Defaults to <code>false</code> (a copy)
       # @option options [Array] :profiles List of profiles to be applied to the container (default: <code>[]</code>)
       #
       # @example Migrate container from remote instance
       #   remote_lxd = Hyperkit::Client.new(api_endpoint: "remote.example.com")
-      #   source_data = remote_lxd.init_container_migration("remote-container")
-      #   Hyperkit.client.migrate_container(source_data, "new-container")
+      #   source_data = remote_lxd.init_migration("remote-container")
+      #   Hyperkit.client.migrate(source_data, "new-container")
       #
       # @example Migrate container and do not regenerate volatile data (e.g. MAC addresses)
       #   remote_lxd = Hyperkit::Client.new(api_endpoint: "remote.example.com")
-      #   source_data = remote_lxd.init_container_migration("remote-container")
-      #   Hyperkit.client.migrate_container(source_data, "new-container", move: true)
+      #   source_data = remote_lxd.init_migration("remote-container")
+      #   Hyperkit.client.migrate(source_data, "new-container", move: true)
       #
       # @example Migrate container and override its profiles
       #   remote_lxd = Hyperkit::Client.new(api_endpoint: "remote.example.com")
-      #   source_data = remote_lxd.init_container_migration("remote-container")
-      #   Hyperkit.client.migrate_container(source_data, "new-container", profiles: %w[test-profile1 test-profile2])
-      def migrate_container(source, dest_name, options={})
+      #   source_data = remote_lxd.init_migration("remote-container")
+      #   Hyperkit.client.migrate(source_data, "new-container", profiles: %w[test-profile1 test-profile2])
+      #
+      # @example Migrate a snapshot
+      #   remote_lxd = Hyperkit::Client.new(api_endpoint: "remote.example.com")
+      #   source_data = remote_lxd.init_migration("remote-container", "remote-snapshot")
+      #   Hyperkit.client.migrate(source_data, "new-container", profiles: %w[test-profile1 test-profile2])
+      def migrate(source, dest_name, options={})
 
         opts = {
           name: dest_name,
           architecture: options[:architecture] || source.architecture,
-          config: options[:config] || source.config.to_hash,
           source: {
             type: "migration",
             mode: "pull",
@@ -475,9 +508,9 @@ module Hyperkit
           }
         }
 
-        #TODO: Handle this when snapshots are implemented
-        #if ! (source is a snapshot)
+        if ! source.snapshot
           opts["base-image"] = source.config["volatile.base_image"]
+          opts[:config] = options[:config] || source.config.to_hash
 
           # If we're only copying the container, and configuration was explicitly 
           # overridden, then remove the volatile entries
@@ -485,7 +518,9 @@ module Hyperkit
             opts[:config].delete_if { |k,v| k.to_s.start_with?("volatile") }
           end
 
-        #end
+        else
+          opts[:config] = options[:config] || {}
+        end
 
         if options.has_key?(:profiles)
           opts[:profiles] = options[:profiles]
@@ -605,6 +640,18 @@ module Hyperkit
       end
 
       alias_method :delete_snapshot, :delete_container_snapshot
+
+      # Rename a snapshot
+      #
+      # @param container [String] Container name
+      # @param old_name [String] Existing snapshot name
+      # @param new_name [String] New snapshot name
+      #
+      # @example Rename snapshot "test/snap1" to "snap2"
+      #   Hyperkit.client.rename_container_snapshot("test", "snap1", "snap2")
+      def rename_container_snapshot(container, old_name, new_name)
+        post(container_snapshot_path(container, old_name), { "name": new_name }).metadata
+      end
 
       private
 
