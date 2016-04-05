@@ -106,6 +106,15 @@ Hyperkit endeavours to support the entirety of [version 1.0 of the LXD API](http
 Currently, we support:
 
 * `/1.0/certificates`
+* `/1.0/containers/`
+  * `GET /1.0/containers`
+  * `POST /1.0/containers`
+  * `GET /1.0/containers/<name>`
+  * `PUT /1.0/containers/<name>`
+  * `POST /1.0/containers/<name>`
+  * `DELETE /1.0/containers/<name>`
+  * `GET /1.0/containers/<name>/state`
+  * `PUT /1.0/containers/<name>/state`
 * `/1.0/images`
 * `/1.0/networks`
 * `/1.0/operations` (except `/1.0/operations/<uuid>/websocket`)
