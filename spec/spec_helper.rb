@@ -100,7 +100,8 @@ RSpec.configure do |config|
 
 
       if example.metadata[:snapshot]
-        #TODO
+        response = client.create_container_snapshot(@test_container_name, "test-snapshot")
+        client.wait_for_operation(response.id)
       end
 
     end
