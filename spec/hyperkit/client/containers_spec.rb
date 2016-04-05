@@ -1621,4 +1621,23 @@ describe Hyperkit::Client::Containers do
 
   end
 
+  describe ".delete_container_snapshot", :vcr do
+
+    it "deletes the snapshot", :container, :snapshot do
+      expect(client.container_snapshots("test-container")).to include("test-snapshot")
+
+      response = client.delete_container_snapshot("test-container", "test-snapshot")
+      client.wait_for_operation(response.id)
+
+      expect(client.container_snapshots("test-container")).to_not include("test-snapshot")
+    end
+
+    it "makes the correct API call" do
+      request = stub_delete("/1.0/containers/test/snapshots/snap").to_return(ok_response)
+      client.delete_container_snapshot("test","snap")
+      assert_requested request
+    end
+
+  end
+
 end
