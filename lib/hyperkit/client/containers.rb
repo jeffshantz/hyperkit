@@ -510,7 +510,22 @@ module Hyperkit
         post(containers_path, opts).metadata
       end
 
+      # List of snapshots for a container
+      #
+      # @param container [String] Container name
+      # @return [Array<String>] An array of snapshot names
+      # @example Get list of snapshots for container "test"
+      #   Hyperkit.client.container_snapshots("test") #=> ["snap1", "snap2", "snap3"]
+      def container_snapshots(container)
+        response = get container_snapshots_path(container)
+        response.metadata.map { |path| path.split('/').last }
+      end
+
       private
+
+      def container_snapshots_path(name)
+        File.join(container_path(name), "snapshots")
+      end
 
       def container_state_path(name)
         File.join(container_path(name), "state")

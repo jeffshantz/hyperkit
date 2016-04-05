@@ -98,6 +98,11 @@ RSpec.configure do |config|
         client.wait_for_operation(response.id)
       end
 
+
+      if example.metadata[:snapshot]
+        #TODO
+      end
+
     end
 
   end
