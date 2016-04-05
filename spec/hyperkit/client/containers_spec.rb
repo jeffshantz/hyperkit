@@ -908,44 +908,86 @@ describe Hyperkit::Client::Containers do
     end
   end
 
-  describe ".init_container_migration", :vcr do
+  describe ".init_migration", :vcr do
 
-    it "returns secrets used by a target LXD instance to migrate a container", :container, :running do
-      response = client.init_container_migration("test-container")
+    context "when the source is a container" do
 
-      expect(response.websocket.url).to_not be_nil
-      expect(response.websocket.secrets.control).to_not be_nil
-      expect(response.websocket.secrets.criu).to_not be_nil
-      expect(response.websocket.secrets.fs).to_not be_nil
+      it "returns secrets used by a target LXD instance to migrate the container", :container do
+        response = client.init_migration("test-container")
+
+        expect(response.websocket.url).to_not be_nil
+        expect(response.websocket.secrets.control).to_not be_nil
+        expect(response.websocket.secrets.fs).to_not be_nil
+        expect(response.snapshot).to be_falsy
+      end
+
+      it "makes the correct API call" do
+        request = stub_post("/1.0/containers/test").
+          with(body: hash_including({
+            migration: true
+          })).
+          to_return(ok_response.merge(body: { operation: "", metadata: { metadata: {} } }.to_json))
+
+          stub_get("/1.0/containers/test").to_return(ok_response.merge(body: {
+            metadata: {
+              architecture: "x86_64",
+              config: {}
+            }
+          }.to_json))
+
+        client.init_migration("test")
+        assert_requested request
+      end
+
     end
 
-    it "makes the correct API call" do
-      request = stub_post("/1.0/containers/test").
-        with(body: hash_including({
-          migration: true
-        })).
-        to_return(ok_response.merge(body: { operation: "", metadata: { metadata: {} } }.to_json))
+    context "when the source is a snapshot" do
 
-        stub_get("/1.0/containers/test").to_return(ok_response.merge(body: {
+      it "returns secrets used by a target LXD instance to migrate the snapshot", :container, :snapshot do
+        response = client.init_migration("test-container", "test-snapshot")
+
+        expect(response.websocket.url).to_not be_nil
+        expect(response.websocket.secrets.control).to_not be_nil
+        expect(response.websocket.secrets.fs).to_not be_nil
+        expect(response.snapshot).to be_truthy
+      end
+
+      it "makes the correct API call" do
+        stub_get("/1.0/containers/test/snapshots/snap").to_return(ok_response.merge(body: {
           metadata: {
             architecture: "x86_64",
             config: {}
           }
         }.to_json))
 
-      client.init_container_migration("test")
-      assert_requested request
+        request = stub_post("/1.0/containers/test/snapshots/snap").
+          with(body: hash_including({
+            migration: true
+          })).
+          to_return(ok_response.merge(body: { operation: "", metadata: { metadata: {} } }.to_json))
+
+        client.init_migration("test", "snap")
+        assert_requested request
+      end
+
     end
 
   end
 
-  describe ".migrate_container", :vcr do
+  describe ".migrate", :vcr do
 
     let(:test_source) { test_migration_source }
+    let(:test_snapshot_source) { test_migration_source(test_migration_source_data.merge(snapshot: true)) }
 
-    before(:each, remote_container: true) do
+    before(:each, remote_container: true) do |example|
       response = lxd2.create_container("test-remote", alias: "cirros")
       lxd2.wait_for_operation(response.id)
+
+      if example.metadata[:remote_snapshot]
+        response = lxd2.create_snapshot("test-remote", "test-remote-snapshot")
+        lxd2.wait_for_operation(response.id)
+      end
+
     end
 
     before(:each, remote_running: true) do
@@ -958,25 +1000,21 @@ describe Hyperkit::Client::Containers do
       lxd2.wait_for_operation(response.id)
     end
 
-    it "copies a container from a remote LXD instance", :container, :skip_create, :remote_container do
+    context "when the source is a container" do
 
-      source = lxd2.init_container_migration("test-remote")
-      expect(client.containers).to_not include("test-container")
+      it "copies the source container to the target instance", :container, :skip_create, :remote_container do
 
-      response = client.migrate_container(source, "test-container")
-      client.wait_for_operation(response.id)
+        source = lxd2.init_migration("test-remote")
+        expect(client.containers).to_not include("test-container")
 
-      expect(client.containers).to include("test-container")
-    end
+        response = client.migrate(source, "test-container")
+        client.wait_for_operation(response.id)
 
-    #TODO: when snapshots are implemented
-    context "when the source is a snapshot" do
-      it "does not pass a base-image"
-    end
-    
-    context "when the source is an image" do
+        expect(client.containers).to include("test-container")
+      end
 
       it "passes a base-image" do
+
         allow(client).to receive(:profiles) { %w[default] }
         request = stub_post("/1.0/containers").
           with(body: hash_including({
@@ -984,43 +1022,44 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response.merge(body: { metadata: {} }.to_json))
 
-        client.migrate_container(test_source, "test2")
+        client.migrate(test_source, "test2")
         assert_requested request
+
       end
 
-    end
-    
-    context "when move: true is specified" do
+      context "when move: true is specified" do
 
-      it "does not remove volatile attributes" do
-        allow(client).to receive(:profiles) { %w[default] }
-        request = stub_post("/1.0/containers").
-          with(body: hash_including({
-						config: {
-              :"volatile.base_image"  => "test-base-image",
-              :"volatile.eth0.hwaddr" => "test-eth0-hwaddr",
-    				}
-          })).
-          to_return(ok_response)
+        it "does not remove volatile attributes" do
+          allow(client).to receive(:profiles) { %w[default] }
+          request = stub_post("/1.0/containers").
+            with(body: hash_including({
+              config: {
+                :"volatile.base_image"  => "test-base-image",
+                :"volatile.eth0.hwaddr" => "test-eth0-hwaddr",
+              }
+            })).
+            to_return(ok_response)
 
-        client.migrate_container(test_source, "test2", move: true)
-				assert_requested request	
+          client.migrate(test_source, "test2", move: true)
+          assert_requested request	
+        end
+
       end
+      
+      context "when move: true is not specified" do
 
-    end
-    
-    context "when move: true is not specified" do
+        it "removes volatile attributes" do
+          allow(client).to receive(:profiles) { %w[default] }
+          request = stub_post("/1.0/containers").
+            with(body: hash_including({
+              config: {}
+            })).
+            to_return(ok_response)
 
-      it "removes volatile attributes" do
-        allow(client).to receive(:profiles) { %w[default] }
-        request = stub_post("/1.0/containers").
-          with(body: hash_including({
-						config: {}
-          })).
-          to_return(ok_response)
+          client.migrate(test_source, "test2")
+          assert_requested request	
+        end
 
-        client.migrate_container(test_source, "test2")
-				assert_requested request	
       end
 
     end
@@ -1035,7 +1074,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.migrate_container(test_source, "test2", architecture: "custom-arch")
+        client.migrate(test_source, "test2", architecture: "custom-arch")
 				assert_requested request	
 			end
 
@@ -1051,7 +1090,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.migrate_container(test_source, "test2")
+        client.migrate(test_source, "test2")
 				assert_requested request	
 			end
 
@@ -1077,7 +1116,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.migrate_container(test_source, "test2", certificate: "overridden")
+        client.migrate(test_source, "test2", certificate: "overridden")
 				assert_requested request	
 			end
 
@@ -1103,7 +1142,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.migrate_container(test_source, "test2")
+        client.migrate(test_source, "test2")
 				assert_requested request	
 			end
 
@@ -1121,7 +1160,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.migrate_container(test_source, "test2", config: { hello: "world" })
+        client.migrate(test_source, "test2", config: { hello: "world" })
 				assert_requested request	
       end
 
@@ -1137,10 +1176,10 @@ describe Hyperkit::Client::Containers do
         response = lxd2.update_container("test-remote", container)
         lxd2.wait_for_operation(response.id)
 
-        source = lxd2.init_container_migration("test-remote")
+        source = lxd2.init_migration("test-remote")
         expect(client.containers).to_not include("test-container")
 
-        response = client.migrate_container(source, "test-container")
+        response = client.migrate(source, "test-container")
         client.wait_for_operation(response.id)
 
         migrated = client.container("test-container")
@@ -1160,7 +1199,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.migrate_container(test_source, "test2", profiles: %w[test1 test2])
+        client.migrate(test_source, "test2", profiles: %w[test1 test2])
 				assert_requested request	
       end
 
@@ -1177,7 +1216,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.migrate_container(test_source, "test2")
+        client.migrate(test_source, "test2")
 				assert_requested request	
 
       end
@@ -1187,7 +1226,7 @@ describe Hyperkit::Client::Containers do
         it "raises an error" do
           allow(client).to receive(:profiles) { [] }
 
-          call = lambda { client.migrate_container(test_source, "test2") }
+          call = lambda { client.migrate(test_source, "test2") }
           expect(call).to raise_error(Hyperkit::MissingProfiles)
         end
 
@@ -1205,7 +1244,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.migrate_container(test_source, "test2", ephemeral: true)
+        client.migrate(test_source, "test2", ephemeral: true)
 				assert_requested request	
       end
 
@@ -1227,7 +1266,7 @@ describe Hyperkit::Client::Containers do
             })).
             to_return(ok_response)
 
-          client.migrate_container(source, "test2")
+          client.migrate(source, "test2")
 				  assert_requested request	
 
         end
@@ -1245,12 +1284,57 @@ describe Hyperkit::Client::Containers do
             })).
             to_return(ok_response)
 
-          client.migrate_container(test_source, "test2")
+          client.migrate(test_source, "test2")
 				  assert_requested request	
 
         end
       end
     
+    end
+
+    context "when the source is a snapshot" do
+
+      it "does not pass a base-image" do
+
+        allow(client).to receive(:profiles) { %w[default] }
+
+        request = stub_post("/1.0/containers").
+          with(body: {
+            name: "test2",
+            architecture: "x86_64",
+            source: {
+              type: "migration",
+              mode: "pull",
+              operation: "test-ws-url",
+              certificate: "test-certificate",
+              secrets: {
+                control: "test-control-secret",
+                fs: "test-fs-secret",
+                criu: "test-criu-secret"
+              }
+            },
+            config: {},
+            profiles: ["default"],
+            ephemeral: false
+          }).
+          to_return(ok_response.merge(body: { metadata: {} }.to_json))
+
+        client.migrate(test_snapshot_source, "test2")
+        assert_requested request
+
+      end
+
+      it "copies the source snapshot to the target instance", :container, :skip_create, :remote_container, :remote_snapshot do
+
+        source = lxd2.init_migration("test-remote", "test-remote-snapshot")
+        expect(client.containers).to_not include("test-container")
+
+        response = client.migrate(source, "test-container")
+        client.wait_for_operation(response.id)
+
+        expect(client.containers).to include("test-container")
+      end
+
     end
 
   end
@@ -1635,6 +1719,32 @@ describe Hyperkit::Client::Containers do
     it "makes the correct API call" do
       request = stub_delete("/1.0/containers/test/snapshots/snap").to_return(ok_response)
       client.delete_container_snapshot("test","snap")
+      assert_requested request
+    end
+
+  end
+
+  describe ".rename_container_snapshot", :vcr do
+
+    it "renames a snapshot", :container, :snapshot do
+      expect(client.snapshots("test-container")).to include("test-snapshot")
+      expect(client.snapshots("test-container")).to_not include("test-snapshot2")
+
+      response = client.rename_container_snapshot("test-container", "test-snapshot", "test-snapshot2")
+      client.wait_for_operation(response.id)
+
+      expect(client.snapshots("test-container")).to_not include("test-snapshot")
+      expect(client.snapshots("test-container")).to include("test-snapshot2")
+    end
+
+    it "makes the correct API call" do
+      request = stub_post("/1.0/containers/test/snapshots/snap").
+        with(body: hash_including({
+          name: "snap2"
+        })).
+        to_return(ok_response)
+
+      client.rename_container_snapshot("test", "snap", "snap2")
       assert_requested request
     end
 
