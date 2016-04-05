@@ -130,7 +130,7 @@ describe Hyperkit::Client do
 
   describe ".last_response", :vcr do
     it "caches the last agent response" do
-      client = Hyperkit::Client.new(api_endpoint: 'https://lxd.example.com:8443', verify_ssl: false)
+      client = Hyperkit::Client.new(api_endpoint: 'https://192.168.103.101:8443', verify_ssl: false)
       expect(client.last_response).to be_nil
       client.get "/"
       expect(client.last_response.status).to eq(200)
@@ -140,7 +140,7 @@ describe Hyperkit::Client do
   describe ".get", :vcr do
     it "handles query params" do
       Hyperkit.get "/", :foo => "bar"
-      assert_requested :get, "https://lxd.example.com:8443?foo=bar"
+      assert_requested :get, "https://192.168.103.101:8443?foo=bar"
     end
     it "handles headers" do
       request = stub_get("/zen").
@@ -153,7 +153,7 @@ describe Hyperkit::Client do
   describe ".head", :vcr do
     it "handles query params" do
       Hyperkit.head "/", :foo => "bar"
-      assert_requested :head, "https://lxd.example.com:8443?foo=bar"
+      assert_requested :head, "https://192.168.103.101:8443?foo=bar"
     end
     it "handles headers" do
       request = stub_head("/zen").
@@ -344,7 +344,7 @@ describe Hyperkit::Client do
       begin
         Hyperkit.get('/boom')
       rescue Hyperkit::UnprocessableEntity => e
-        expect(e.message).to include("GET https://lxd.example.com:8443/boom: 422 - Go away")
+        expect(e.message).to include("GET https://192.168.103.101:8443/boom: 422 - Go away")
       end
     end
 
@@ -359,7 +359,7 @@ describe Hyperkit::Client do
       begin
         Hyperkit.get('/boom')
       rescue Hyperkit::UnprocessableEntity => e
-        expect(e.message).to include("GET https://lxd.example.com:8443/boom: 422 - Error: Go away")
+        expect(e.message).to include("GET https://192.168.103.101:8443/boom: 422 - Error: Go away")
       end
     end
 
@@ -380,7 +380,7 @@ describe Hyperkit::Client do
       begin
         Hyperkit.get('/boom')
       rescue Hyperkit::UnprocessableEntity => e
-        expect(e.message).to include("GET https://lxd.example.com:8443/boom: 422 - Go away")
+        expect(e.message).to include("GET https://192.168.103.101:8443/boom: 422 - Go away")
         expect(e.message).to include("  seriously: Get out of here")
         expect(e.message).to include("  no_really: Leave now")
       end

@@ -3,7 +3,29 @@ require 'tmpdir'
 
 describe Hyperkit::Client::Images do
 
-  let(:client) { Hyperkit::Client.new }
+  let(:client) { lxd }
+
+  before(:each, remote_image: true) do |example|
+    @remote_cert = lxd2.get("/1.0").metadata.environment.certificate
+    @remote_fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
+
+		options = {
+			public: true
+		}
+
+		if example.metadata.has_key?(:remote_image_options)
+			options = options.merge(:remote_image_options)
+		end
+
+    response = lxd2.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"), options)
+    lxd2.wait_for_operation(response.id)
+    lxd2.create_image_alias(@remote_fingerprint, "busybox/default")
+  end
+
+  after(:each, remote_image: true) do |example|
+    response = lxd2.delete_image(@remote_fingerprint)
+    lxd2.wait_for_operation(response.id)
+  end
 
   describe ".images", :vcr do
 
@@ -46,12 +68,12 @@ describe Hyperkit::Client::Images do
       fingerprint = images.first
 
       image = client.image(fingerprint)
-			expect(image[:fingerprint]).to eq(fingerprint)
+			expect(image.fingerprint).to eq(fingerprint)
     end
 
     it "makes the correct API call" do
 			request = stub_get("/1.0/images/45bcc353f629b23ce30ef4cca14d2a4990c396d85ea68905795cc7579c145123").
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response)
 
       client.image("45bcc353f629b23ce30ef4cca14d2a4990c396d85ea68905795cc7579c145123")
       assert_requested request
@@ -60,7 +82,7 @@ describe Hyperkit::Client::Images do
     it "accepts a secret" do
 
 			request = stub_get("/1.0/images/45bcc353f629b23ce30ef4cca14d2a4990c396d85ea68905795cc7579c145123?secret=shhhh").
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response)
 
       client.image("45bcc353f629b23ce30ef4cca14d2a4990c396d85ea68905795cc7579c145123",
         secret: "shhhh")
@@ -91,9 +113,9 @@ describe Hyperkit::Client::Images do
         "/1.0/images/aliases/ubuntu/xenial/armhf",
         "/1.0/images/aliases/ubuntu/xenial/i386/default",
         "/1.0/images/aliases/ubuntu/xenial/i386"
-			]}.to_json
+			]}
       stub_get("/1.0/images/aliases").
-        to_return(:status => 200, body: body, :headers => {'Content-Type' => 'application/json'})
+        to_return(ok_response.merge(body: body.to_json))
 
       aliases = client.image_aliases
       expect(aliases).to eq(%w[
@@ -115,13 +137,13 @@ describe Hyperkit::Client::Images do
       client.api_endpoint = "https://images.linuxcontainers.org:8443"
       a = client.image_alias(image_alias)
 
-			expect(a[:name]).to eq(image_alias)
-      expect(a[:target]).to_not be_nil
+			expect(a.name).to eq(image_alias)
+      expect(a.target).to_not be_nil
     end
 
     it "makes the correct API call" do
 			request = stub_get("/1.0/images/aliases/ubuntu/xenial/amd64/default").
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response)
 
       client.image_alias("ubuntu/xenial/amd64/default")
       assert_requested request
@@ -131,28 +153,16 @@ describe Hyperkit::Client::Images do
 
   describe ".create_image_alias", :vcr do
 
-    it "creates an alias" do
-      fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
-
-			response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"))
-      client.wait_for_operation(response[:id])
-
-      client.create_image_alias(fingerprint, "busybox/default")
-
-      image = client.image_by_alias("busybox/default")
-      expect(image[:fingerprint]).to eq(fingerprint)
-
-      client.delete_image(fingerprint)
+    it "creates an alias", :image do
+      client.create_image_alias(@fingerprint, "busybox/test")
+      image = client.image_by_alias("busybox/test")
+      expect(image.fingerprint).to eq(@fingerprint)
     end
 
-    it "accepts an alias description" do
-      fingerprint = create_test_image
-      client.create_image_alias(fingerprint, "busybox/default", description: "Hello world")
-
-      a = client.image_alias("busybox/default")
-      expect(a[:description]).to eq("Hello world")
-
-      delete_test_image
+    it "accepts an alias description", :image do
+      client.create_image_alias(@fingerprint, "busybox/test", description: "Hello world")
+      a = client.image_alias("busybox/test")
+      expect(a.description).to eq("Hello world")
     end
 
     it "makes the correct API call" do
@@ -162,7 +172,7 @@ describe Hyperkit::Client::Images do
           target: "target_fingerprint",
           description: "desc"
         })).
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response)
 
       client.create_image_alias("target_fingerprint", "alias_name", description: "desc")
       assert_requested request
@@ -172,23 +182,19 @@ describe Hyperkit::Client::Images do
 
   describe ".delete_image_alias", :vcr do
 
-    it "deletes an alias" do
-      fingerprint = create_test_image("busybox/default")
-      image = client.image(fingerprint)
-
-      expect(image[:aliases].map(&:name)).to include("busybox/default")
+    it "deletes an alias", :image do
+      image = client.image(@fingerprint)
+      expect(image.aliases.map(&:name)).to include("busybox/default")
 
       client.delete_image_alias("busybox/default")
-      image = client.image(fingerprint)
+      image = client.image(@fingerprint)
 
-      expect(image[:aliases].map(&:name)).to_not include("busybox/default")
-
-      delete_test_image
+      expect(image.aliases.map(&:name)).to_not include("busybox/default")
     end
 
     it "makes the correct API call" do
 			request = stub_delete("/1.0/images/aliases/test").
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response)
 
       client.delete_image_alias("test")
       assert_requested request
@@ -198,20 +204,17 @@ describe Hyperkit::Client::Images do
 
   describe ".rename_image_alias", :vcr do
 
-    it "renames an alias" do
-      fingerprint = create_test_image("busybox/default")
-      image = client.image(fingerprint)
+    it "renames an alias", :image do
+      image = client.image(@fingerprint)
 
-      expect(image[:aliases].map(&:name)).to include("busybox/default")
-      expect(image[:aliases].map(&:name)).to_not include("busybox/amd64")
+      expect(image.aliases.map(&:name)).to include("busybox/default")
+      expect(image.aliases.map(&:name)).to_not include("busybox/amd64")
 
       client.rename_image_alias("busybox/default", "busybox/amd64")
-      image = client.image(fingerprint)
+      image = client.image(@fingerprint)
 
-      expect(image[:aliases].map(&:name)).to_not include("busybox/default")
-      expect(image[:aliases].map(&:name)).to include("busybox/amd64")
-
-      delete_test_image
+      expect(image.aliases.map(&:name)).to_not include("busybox/default")
+      expect(image.aliases.map(&:name)).to include("busybox/amd64")
     end
 
     it "makes the correct API call" do
@@ -219,7 +222,7 @@ describe Hyperkit::Client::Images do
         with(body: hash_including({
           name: "test2"
          })).
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response)
 
       client.rename_image_alias("test", "test2")
       assert_requested request
@@ -230,49 +233,51 @@ describe Hyperkit::Client::Images do
   describe ".update_image_alias", :vcr do
 
     it "updates an existing alias target" do
+
+      stub_get("/1.0/images/aliases/test").
+        to_return(ok_response.merge(body: {
+          metadata: {
+            target: "fingerprint",
+            description: "test-description"
+          } 
+        }.to_json))
+
 			request = stub_put("/1.0/images/aliases/test").
         with(body: hash_including({
-          target: "test-fingerprint"
+          target: "test-fingerprint",
+          description: "test-description"
          })).
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response)
 
       client.update_image_alias("test", target: "test-fingerprint")
       assert_requested request
     end
 
-    it "updates an existing alias description" do
-      fingerprint = create_test_image("busybox/default")
-      image = client.image(fingerprint)
+    it "updates an existing alias description", :image do
+      image = client.image(@fingerprint)
 
       a = client.image_alias("busybox/default")
-      expect(a[:description]).to be_empty
+      expect(a.description).to be_empty
 
       client.update_image_alias("busybox/default", description: "hello")
 
       a = client.image_alias("busybox/default")
-      expect(a[:description]).to eq("hello")
-
-      delete_test_image
+      expect(a.description).to eq("hello")
     end
 
     it "raises an error if no target or description is specified" do
       expect { client.update_image_alias("busybox/default") }.to raise_error(Hyperkit::AliasAttributesRequired)
     end
 
-    it "makes the correct API call" do
-    end
-
   end
 
   describe ".image_by_alias", :vcr do
-    it "retrieves an image by its alias" do
-			image_alias = "ubuntu/xenial/amd64/default"
-      client.api_endpoint = 'https://images.linuxcontainers.org:8443'
-      image = client.image_by_alias(image_alias)
 
-      expect(image[:aliases].any? { |a| a[:name] == image_alias }).to be_truthy
-			expect(image[:properties][:description]).to include("Ubuntu xenial (amd64)")
-			expect(image[:architecture]).to eq("x86_64")
+    it "retrieves an image by its alias" do
+      image = client.image_by_alias("cirros")
+      expect(image.aliases.any? { |a| a.name == "cirros" }).to be_truthy
+			expect(image.properties.description).to eq("Cirros 0.3.4 x86_64")
+			expect(image.architecture).to eq("x86_64")
     end
 
     it "makes the correct API calls" do
@@ -280,10 +285,10 @@ describe Hyperkit::Client::Images do
       fingerprint = "45bcc353f629b23ce30ef4cca14d2a4990c396d85ea68905795cc7579c145123"
 
 			request1 = stub_get("/1.0/images/aliases/#{image_alias}").
-        to_return(status: 200, body: { metadata: {target: fingerprint, name: image_alias}}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response.merge(body: { metadata: { target: fingerprint, name: image_alias } }.to_json))
 
 			request2 = stub_get("/1.0/images/#{fingerprint}").
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response)
 
       client.image_by_alias(image_alias)
       assert_requested request1
@@ -295,10 +300,10 @@ describe Hyperkit::Client::Images do
       fingerprint = "45bcc353f629b23ce30ef4cca14d2a4990c396d85ea68905795cc7579c145123"
 
 			request1 = stub_get("/1.0/images/aliases/#{image_alias}").
-        to_return(status: 200, body: { metadata: {target: fingerprint, name: image_alias}}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response.merge(body: { metadata: { target: fingerprint, name: image_alias } }.to_json))
 
 			request2 = stub_get("/1.0/images/#{fingerprint}?secret=shhhh").
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response)
 
       client.image_by_alias(image_alias, secret: "shhhh")
       assert_requested request1
@@ -310,98 +315,104 @@ describe Hyperkit::Client::Images do
 
   describe ".create_image_from_file", :vcr do
 
-    after do
-      client.delete_image(@fingerprint) if @fingerprint
+    before(:each, skip_create: true) do
+      @fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
     end
 
-    it "creates an image" do
-      @fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
-
+    it "creates an image", :image, :skip_create do
 			response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"))
-      client.wait_for_operation(response[:id])
-
+      client.wait_for_operation(response.id)
       expect(client.images).to include(@fingerprint)
 		end
 
     it "makes the correct API call" do
-      request = stub_post("/1.0/images").
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+      request = stub_post("/1.0/images").to_return(ok_response)
 			client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"))
       assert_requested request
     end
 
     context "when properties are passed" do
-      it "stores them with the image" do
-        @fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
 
+      it "stores them with the image", :image, :skip_create do
         response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"),
 					properties: { hello: "world %!@# how are you?!", test: 123 })
-        client.wait_for_operation(response[:id])
+        client.wait_for_operation(response.id)
 
         image = client.image(@fingerprint)
 
-        expect(image[:properties][:hello]).to eq("world %!@# how are you?!")
-        expect(image[:properties][:test]).to eq("123")
+        expect(image.properties.hello).to eq("world %!@# how are you?!")
+        expect(image.properties.test).to eq("123")
       end
+
     end
 
     context "when 'public': true is passed" do
-      it "makes the image public" do
-        @fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
+
+      it "makes the image public", :image, :skip_create do
 
         response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"), public: true)
-        client.wait_for_operation(response[:id])
+        client.wait_for_operation(response.id)
 
         image = client.image(@fingerprint)
-        expect(image[:public]).to be_truthy
+        expect(image.public).to be_truthy
+
       end
+
     end
 
     context "when public: true is not passed" do
-      it "defaults to a private image" do
-        @fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
+
+      it "defaults to a private image", :image, :skip_create do
 
         response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"))
-        client.wait_for_operation(response[:id])
+        client.wait_for_operation(response.id)
 
         image = client.image(@fingerprint)
-        expect(image[:public]).to be_falsy
+        expect(image.public).to be_falsy
+
       end
+
     end
 
     context "when a filename is passed" do
-      it "passes the filename with the upload" do
-        @fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
 
-        response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"),
-					filename: "test.tar.xz")
-        client.wait_for_operation(response[:id])
+      it "passes the filename with the upload", :image, :skip_create do
+
+        response = client.create_image_from_file(
+          fixture("busybox-1.21.1-amd64-lxc.tar.xz"),
+					filename: "test.tar.xz"
+        )
+        client.wait_for_operation(response.id)
 
         image = client.image(@fingerprint)
-        expect(image[:filename]).to eq("test.tar.xz")
+        expect(image.filename).to eq("test.tar.xz")
+
       end
+
     end
 
     context "when no filename is passed" do
-      it "defaults to the name of the file being uploaded" do
-        @fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
+
+      it "defaults to the name of the file being uploaded", :image, :skip_create do
 
         response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"))
-        client.wait_for_operation(response[:id])
+        client.wait_for_operation(response.id)
 
         image = client.image(@fingerprint)
-        expect(image[:filename]).to eq("busybox-1.21.1-amd64-lxc.tar.xz")
+        expect(image.filename).to eq("busybox-1.21.1-amd64-lxc.tar.xz")
+
       end
+
     end
 
     context "when passed an optional fingerprint" do
 
-      it "uploads successfully if the fingerprint matches the image fingerprint" do
-        @fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
+      it "uploads successfully if the fingerprint matches the image fingerprint", :image, :skip_create do
 
-        response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"),
+        response = client.create_image_from_file(
+          fixture("busybox-1.21.1-amd64-lxc.tar.xz"),
 					fingerprint: @fingerprint)
-        client.wait_for_operation(response[:id])
+        client.wait_for_operation(response.id)
 
         expect(client.images).to include(@fingerprint)
       end
@@ -409,7 +420,7 @@ describe Hyperkit::Client::Images do
       it "throws an exception (when the operation is waited upon) if the fingerprint does not match the image fingerprint" do
         response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"),
 					fingerprint: "bad-fingerprint")
-        expect { client.wait_for_operation(response[:id]) }.to raise_error(Hyperkit::BadRequest)
+        expect { client.wait_for_operation(response.id) }.to raise_error(Hyperkit::BadRequest)
         expect(client.images).to_not include(fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz"))
       end
 
@@ -419,88 +430,110 @@ describe Hyperkit::Client::Images do
 
   describe ".create_image_from_remote", :vcr do
 
-    after do
-      client.delete_image(@fingerprint) if @fingerprint
-    end
+    it "creates an image", :remote_image, :image, :skip_create do
 
-    it "creates an image" do
-      response = client.create_image_from_remote("https://images.linuxcontainers.org:8443",
-				alias: "ubuntu/xenial/amd64")
-      response = client.wait_for_operation(response[:id])
-      @fingerprint = response[:metadata][:fingerprint]
+      response = client.create_image_from_remote(
+        "https://192.168.103.102:8443",
+				alias: "busybox/default", 
+        certificate: @remote_cert)
+      response = client.wait_for_operation(response.id)
 
+      @fingerprint = response.metadata.fingerprint
       image = client.image(@fingerprint)
 
-			expect(image[:architecture]).to eq("x86_64")
-      expect(image[:public]).to eq(false)
-      expect(image[:update_source][:server]).to eq("https://images.linuxcontainers.org:8443")
-			expect(image[:update_source][:protocol]).to eq("lxd")
-
+			expect(image.architecture).to eq("x86_64")
+      expect(image.public).to eq(false)
+      expect(image.update_source.server).to eq("https://192.168.103.102:8443")
+			expect(image.update_source.protocol).to eq("lxd")
     end
 
     it "makes the correct API call" do
       request = stub_post("/1.0/images").
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response)
       client.create_image_from_remote("https://images.linuxcontainers.org:8443",
 				alias: "ubuntu/xenial/amd64")
       assert_requested request
 		end
 
     context "when properties are passed" do
-      it "stores them with the image" do
-      	response = client.create_image_from_remote("https://images.linuxcontainers.org:8443",
-					alias: "ubuntu/xenial/amd64",
-					properties: { hello: "world %!@# how are you?!", test: 123 }
-				)
-      	response = client.wait_for_operation(response[:id])
-        @fingerprint = response[:metadata][:fingerprint]
 
+      it "stores them with the image", :remote_image, :image, :skip_create do
+        response = client.create_image_from_remote(
+          "https://192.168.103.102:8443",
+			  	alias: "busybox/default", 
+					properties: { hello: "world %!@# how are you?!", test: 123 },
+          certificate: @remote_cert)
+        response = client.wait_for_operation(response.id)
+
+        @fingerprint = response.metadata.fingerprint
         image = client.image(@fingerprint)
 
-        expect(image[:properties][:hello]).to eq("world %!@# how are you?!")
-        expect(image[:properties][:test]).to eq("123")
+        expect(image.properties.hello).to eq("world %!@# how are you?!")
+        expect(image.properties.test).to eq("123")
 			end
+
     end
      
     context "when 'public': true is passed" do
-      it "makes the image public" do
-      	response = client.create_image_from_remote("https://images.linuxcontainers.org:8443",
-					alias: "ubuntu/xenial/amd64", public: true)
-      	response = client.wait_for_operation(response[:id])
-        @fingerprint = response[:metadata][:fingerprint]
 
+      it "makes the image public", :remote_image, :image, :skip_create do
+
+        response = client.create_image_from_remote(
+          "https://192.168.103.102:8443",
+			  	alias: "busybox/default", 
+					public: true,
+          certificate: @remote_cert)
+      	response = client.wait_for_operation(response.id)
+
+        @fingerprint = response.metadata.fingerprint
       	image = client.image(@fingerprint)
-				expect(image[:public]).to be_truthy
+
+				expect(image.public).to be_truthy
       end
+
     end
 
     context "when public: true is not passed" do
-      it "defaults to a private image" do
-      	response = client.create_image_from_remote("https://images.linuxcontainers.org:8443",
-					alias: "ubuntu/xenial/amd64")
-      	response = client.wait_for_operation(response[:id])
-        @fingerprint = response[:metadata][:fingerprint]
 
+      it "defaults to a private image", :remote_image, :image, :skip_create do
+
+        response = client.create_image_from_remote(
+          "https://192.168.103.102:8443",
+			  	alias: "busybox/default", 
+          certificate: @remote_cert)
+      	response = client.wait_for_operation(response.id)
+
+        @fingerprint = response.metadata.fingerprint
       	image = client.image(@fingerprint)
-				expect(image[:public]).to be_falsy
+
+				expect(image.public).to be_falsy
       end
+
     end
 
     context "when a filename is passed" do
-      it "passes the filename with the upload" do
-      	response = client.create_image_from_remote("https://images.linuxcontainers.org:8443",
-					alias: "ubuntu/xenial/amd64",
-          filename: "ubuntu-xenial.tar.xz")
-      	response = client.wait_for_operation(response[:id])
-        @fingerprint = response[:metadata][:fingerprint]
 
+      it "passes the filename with the upload", :remote_image, :image, :skip_create do
+
+        response = client.create_image_from_remote(
+          "https://192.168.103.102:8443",
+			  	alias: "busybox/default", 
+          certificate: @remote_cert,
+          filename: "test-busybox-archive.tar.xz")
+      	response = client.wait_for_operation(response.id)
+
+        @fingerprint = response.metadata.fingerprint
       	image = client.image(@fingerprint)
-				expect(image[:filename]).to eq("ubuntu-xenial.tar.xz")
+
+				expect(image.filename).to eq("test-busybox-archive.tar.xz")
       end
+
     end
 
     context "when passed an alias" do
+
       it "passes the alias as the image to download" do
+
         request = stub_post("/1.0/images").
           with(body: hash_including({:source => {
 						type: "image",
@@ -508,41 +541,48 @@ describe Hyperkit::Client::Images do
             server: "https://images.linuxcontainers.org:8443",
 						alias: "ubuntu/xenial/amd64",
 					}})).
-          to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+          to_return(ok_response)
 
         client.create_image_from_remote("https://images.linuxcontainers.org:8443",
 			  	alias: "ubuntu/xenial/amd64")
         assert_requested request
 			end
+
     end
 
     context "when passed a fingerprint" do
+
       it "passes the fingerprint as the image to download" do
+
         request = stub_post("/1.0/images").
-          with(body: hash_including({:source => {
+          with(body: hash_including({source: {
 						type: "image",
             mode: "pull",
             server: "https://images.linuxcontainers.org:8443",
 			  		fingerprint: "07d1a93ca98d3480b4b763c4defb9d05b082b764b1abac7a4dc00f482d6faf09"
 					}})).
-          to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+          to_return(ok_response)
 
         client.create_image_from_remote("https://images.linuxcontainers.org:8443",
 			    fingerprint: "07d1a93ca98d3480b4b763c4defb9d05b082b764b1abac7a4dc00f482d6faf09")
         assert_requested request
+
 			end
+
 		end
 
     context "when passed both an alias and fingerprint" do
+
       it "passes the alias as the image to download" do
+
         request = stub_post("/1.0/images").
-          with(body: hash_including({:source => {
+          with(body: hash_including({source: {
 						type: "image",
             mode: "pull",
             server: "https://images.linuxcontainers.org:8443",
-						alias: "ubuntu/xenial/amd64",
+						alias: "ubuntu/xenial/amd64"
 					}})).
-          to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+          to_return(ok_response)
 
         client.create_image_from_remote("https://images.linuxcontainers.org:8443",
 			  	alias: "ubuntu/xenial/amd64",
@@ -552,45 +592,52 @@ describe Hyperkit::Client::Images do
     end
 
     context "when passed neither an alias nor a fingerprint" do
+
       it "raises an error" do
 				call = lambda { client.create_image_from_remote("https://images.linuxcontainers.org:8443") }
         expect(call).to raise_error(Hyperkit::ImageIdentifierRequired)
 			end
+
     end
 
     context "when passed a protocol" do
+
       it "accepts lxd" do
+
         request = stub_post("/1.0/images").
-          with(body: hash_including({:source => {
+          with(body: hash_including({source: {
 						type: "image",
             mode: "pull",
             server: "https://images.linuxcontainers.org:8443",
             protocol: "lxd",
-						alias: "ubuntu/xenial/amd64",
+						alias: "ubuntu/xenial/amd64"
 					}})).
-          to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+          to_return(ok_response)
 
         client.create_image_from_remote("https://images.linuxcontainers.org:8443",
 			  	alias: "ubuntu/xenial/amd64",
 					protocol: "lxd")
         assert_requested request
+
 			end
 
       it "accepts simplestreams" do
+
         request = stub_post("/1.0/images").
-          with(body: hash_including({:source => {
+          with(body: hash_including({source: {
 						type: "image",
             mode: "pull",
             server: "https://images.linuxcontainers.org:8443",
             protocol: "simplestreams",
-						alias: "ubuntu/xenial/amd64",
+						alias: "ubuntu/xenial/amd64"
 					}})).
-          to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+          to_return(ok_response)
 
         client.create_image_from_remote("https://images.linuxcontainers.org:8443",
 			  	alias: "ubuntu/xenial/amd64",
 					protocol: "simplestreams")
         assert_requested request
+
 			end
 
       it "raises an error on invalid input" do
@@ -605,171 +652,204 @@ describe Hyperkit::Client::Images do
     end
 
     context "when passed a secret" do
+
       it "passes the secret to the server" do
+
         request = stub_post("/1.0/images").
-          with(body: hash_including({:source => {
+          with(body: hash_including({source: {
 						type: "image",
             mode: "pull",
             server: "https://images.linuxcontainers.org:8443",
 						secret: "reallysecret",
 						alias: "ubuntu/xenial/amd64",
 					}})).
-          to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+          to_return(ok_response)
 
         client.create_image_from_remote("https://images.linuxcontainers.org:8443",
 			  	alias: "ubuntu/xenial/amd64",
 					secret: "reallysecret")
         assert_requested request
+
 			end
+
     end
 
     context "when passed a certificate" do
+
       it "passes the certificate to the server" do
+
         request = stub_post("/1.0/images").
-          with(body: hash_including({:source => {
+          with(body: hash_including({source: {
 						type: "image",
             mode: "pull",
             server: "https://images.linuxcontainers.org:8443",
-						certificate: test_cert2,
+						certificate: test_cert,
 						alias: "ubuntu/xenial/amd64",
 					}})).
-          to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+          to_return(ok_response)
 
         client.create_image_from_remote("https://images.linuxcontainers.org:8443",
 			  	alias: "ubuntu/xenial/amd64",
-					certificate: test_cert2)
+					certificate: test_cert)
         assert_requested request
+
       end
+
     end
 
     context "when 'auto_update': true is passed" do
-      it "auto-updates the image" do
-      	response = client.create_image_from_remote("https://images.linuxcontainers.org:8443",
-					alias: "ubuntu/xenial/amd64", auto_update: true)
-      	response = client.wait_for_operation(response[:id])
-        @fingerprint = response[:metadata][:fingerprint]
 
+      it "auto-updates the image", :remote_image, :image, :skip_create do
+
+        response = client.create_image_from_remote(
+          "https://192.168.103.102:8443",
+			  	alias: "busybox/default", 
+          certificate: @remote_cert,
+          public: true,
+          auto_update: true)
+      	response = client.wait_for_operation(response.id)
+
+        @fingerprint = response.metadata.fingerprint
       	image = client.image(@fingerprint)
-				expect(image[:auto_update]).to be_truthy
+
+				expect(image.auto_update).to be_truthy
+
       end
+
     end
 
     context "when auto_update: true is not passed" do
-      it "defaults to a non-auto-updated image" do
-      	response = client.create_image_from_remote("https://images.linuxcontainers.org:8443",
-					alias: "ubuntu/xenial/amd64")
-      	response = client.wait_for_operation(response[:id])
-        @fingerprint = response[:metadata][:fingerprint]
 
+      it "defaults to a non-auto-updated image", :remote_image, :image, :skip_create do
+
+        response = client.create_image_from_remote(
+          "https://192.168.103.102:8443",
+			  	alias: "busybox/default", 
+          certificate: @remote_cert,
+          public: true)
+      	response = client.wait_for_operation(response.id)
+
+        @fingerprint = response.metadata.fingerprint
       	image = client.image(@fingerprint)
-				expect(image[:auto_update]).to be_falsy
+
+				expect(image.auto_update).to be_falsy
+
       end
+
     end
 
   end
 
   describe ".create_image_from_url", :vcr do
 
-    after do
-      client.delete_image(@fingerprint) if @fingerprint
-    end
+    it "creates an image", :image, :skip_create do
+      response = client.create_image_from_url("http://192.168.103.102")
+      response = client.wait_for_operation(response.id)
 
-    it "creates an image" do
-      response = client.create_image_from_url("http://www.csd.uwo.ca/~jeff/containers/busybox")
-      response = client.wait_for_operation(response[:id])
-
-      @fingerprint = response[:metadata][:fingerprint]
+      @fingerprint = response.metadata.fingerprint
       image = client.image(@fingerprint)
 
-			expect(image[:architecture]).to eq("x86_64")
-      expect(image[:public]).to eq(false)
+			expect(image.architecture).to eq("x86_64")
+      expect(image.public).to eq(false)
     end
 
     it "makes the correct API call" do
       request = stub_post("/1.0/images").
-        with(body: hash_including({:source => {
+        with(body: hash_including({source: {
 						type: "url",
-            url: "http://www.csd.uwo.ca/~jeff/containers/busybox"
+            url: "http://192.168.103.102/busybox"
 					}})).
-          to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
-      client.create_image_from_url("http://www.csd.uwo.ca/~jeff/containers/busybox")
+          to_return(ok_response)
+      client.create_image_from_url("http://192.168.103.102/busybox")
       assert_requested request
 		end
 
     context "when properties are passed" do
-      it "stores them with the image" do
-        response = client.create_image_from_url("http://www.csd.uwo.ca/~jeff/containers/busybox",
-					properties: { hello: "world %!@# how are you?!", test: 123 })
-      	response = client.wait_for_operation(response[:id])
 
-        @fingerprint = response[:metadata][:fingerprint]
+      it "stores them with the image", :image, :skip_create do
+
+        response = client.create_image_from_url(
+          "http://192.168.103.102",
+					properties: { hello: "world %!@# how are you?!", test: 123 }
+        )
+      	response = client.wait_for_operation(response.id)
+
+        @fingerprint = response.metadata.fingerprint
         image = client.image(@fingerprint)
 
-        expect(image[:properties][:hello]).to eq("world %!@# how are you?!")
-        expect(image[:properties][:test]).to eq("123")
+        expect(image.properties.hello).to eq("world %!@# how are you?!")
+        expect(image.properties.test).to eq("123")
 			end
+
     end
      
     context "when 'public': true is passed" do
-      it "makes the image public" do
-        response = client.create_image_from_url("http://www.csd.uwo.ca/~jeff/containers/busybox",
-					public: true)
-      	response = client.wait_for_operation(response[:id])
 
-        @fingerprint = response[:metadata][:fingerprint]
+      it "makes the image public", :image, :skip_create do
+        response = client.create_image_from_url(
+          "http://192.168.103.102",
+					public: true
+        )
+      	response = client.wait_for_operation(response.id)
+
+        @fingerprint = response.metadata.fingerprint
         image = client.image(@fingerprint)
 
-			  expect(image[:public]).to be_truthy
+			  expect(image.public).to be_truthy
       end
+
     end
 
     context "when public: true is not passed" do
-      it "defaults to a private image" do
-        response = client.create_image_from_url("http://www.csd.uwo.ca/~jeff/containers/busybox")
-      	response = client.wait_for_operation(response[:id])
 
-        @fingerprint = response[:metadata][:fingerprint]
+      it "defaults to a private image", :image, :skip_create do
+        response = client.create_image_from_url("http://192.168.103.102")
+      	response = client.wait_for_operation(response.id)
+
+        @fingerprint = response.metadata.fingerprint
         image = client.image(@fingerprint)
 
-			  expect(image[:public]).to be_falsy
+			  expect(image.public).to be_falsy
       end
+
     end
 
     context "when a filename is passed" do
-      it "stores the filename with the imported image" do
-        response = client.create_image_from_url("http://www.csd.uwo.ca/~jeff/containers/busybox",
-					filename: "busybox-v1.tar.xz")
-      	response = client.wait_for_operation(response[:id])
 
-        @fingerprint = response[:metadata][:fingerprint]
+      it "stores the filename with the imported image", :image, :skip_create do
+        response = client.create_image_from_url(
+          "http://192.168.103.102",
+					filename: "busybox-v1.tar.xz")
+      	response = client.wait_for_operation(response.id)
+
+        @fingerprint = response.metadata.fingerprint
         image = client.image(@fingerprint)
 
-			  expect(image[:filename]).to eq("busybox-v1.tar.xz")
+			  expect(image.filename).to eq("busybox-v1.tar.xz")
       end
+
     end
 
   end
 
   describe ".create_image_from_container", :vcr do
 
-		before do
-      # TODO: create the test container
-		end
-
-    after do
-      client.delete_image(@fingerprint) if @fingerprint
-      # TODO: delete the test container
+    after(:each) do
+      if @fingerprint
+        response = client.delete_image(@fingerprint)
+        client.wait_for_operation(response.id)
+      end
     end
 
-    it "creates an image" do
+    it "creates an image", :container do
       response = client.create_image_from_container("test-container")
-      response = client.wait_for_operation(response[:id])
+      response = client.wait_for_operation(response.id)
 
-      @fingerprint = response[:metadata][:fingerprint]
+      @fingerprint = response.metadata.fingerprint
       image = client.image(@fingerprint)
 
-			expect(image[:architecture]).to eq("x86_64")
-      expect(image[:public]).to eq(false)
+			expect(image.architecture).to eq("x86_64")
+      expect(image.public).to eq(false)
     end
 
     it "makes the correct API call" do
@@ -778,59 +858,69 @@ describe Hyperkit::Client::Images do
 						type: "container",
             name: "test-container"
 					}})).
-          to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+          to_return(ok_response)
       client.create_image_from_container("test-container")
       assert_requested request
 		end
 
-    context "when properties are passed" do
-      it "stores them with the image" do
-        response = client.create_image_from_container("test-container",
-					properties: { hello: "world %!@# how are you?!", test: 123 })
-      	response = client.wait_for_operation(response[:id])
+    context "when properties are passed", :container do
 
-        @fingerprint = response[:metadata][:fingerprint]
+      it "stores them with the image" do
+        response = client.create_image_from_container(
+          "test-container",
+					properties: { hello: "world %!@# how are you?!", test: 123 }
+        )
+      	response = client.wait_for_operation(response.id)
+
+        @fingerprint = response.metadata.fingerprint
         image = client.image(@fingerprint)
 
-        expect(image[:properties][:hello]).to eq("world %!@# how are you?!")
-        expect(image[:properties][:test]).to eq("123")
+        expect(image.properties.hello).to eq("world %!@# how are you?!")
+        expect(image.properties.test).to eq("123")
 			end
+
     end
      
     context "when 'public': true is passed" do
-      it "makes the image public" do
-        response = client.create_image_from_container("test-container", public: true)
-      	response = client.wait_for_operation(response[:id])
 
-        @fingerprint = response[:metadata][:fingerprint]
+      it "makes the image public", :container do
+        response = client.create_image_from_container("test-container", public: true)
+      	response = client.wait_for_operation(response.id)
+
+        @fingerprint = response.metadata.fingerprint
         image = client.image(@fingerprint)
 
-			  expect(image[:public]).to be_truthy
+			  expect(image.public).to be_truthy
       end
+
     end
 
     context "when public: true is not passed" do
-      it "defaults to a private image" do
-        response = client.create_image_from_container("test-container")
-      	response = client.wait_for_operation(response[:id])
 
-        @fingerprint = response[:metadata][:fingerprint]
+      it "defaults to a private image", :container do
+        response = client.create_image_from_container("test-container")
+      	response = client.wait_for_operation(response.id)
+
+        @fingerprint = response.metadata.fingerprint
         image = client.image(@fingerprint)
 
-			  expect(image[:public]).to be_falsy
+			  expect(image.public).to be_falsy
       end
+
     end
 
     context "when a filename is passed" do
-      it "stores the filename with the imported image" do
-        response = client.create_image_from_container("test-container", filename: "busybox-v1.tar.xz")
-      	response = client.wait_for_operation(response[:id])
 
-        @fingerprint = response[:metadata][:fingerprint]
+      it "stores the filename with the imported image", :container do
+        response = client.create_image_from_container("test-container", filename: "busybox-v1.tar.xz")
+      	response = client.wait_for_operation(response.id)
+
+        @fingerprint = response.metadata.fingerprint
         image = client.image(@fingerprint)
 
-			  expect(image[:filename]).to eq("busybox-v1.tar.xz")
+			  expect(image.filename).to eq("busybox-v1.tar.xz")
       end
+
     end
 
 	end
@@ -848,13 +938,13 @@ describe Hyperkit::Client::Images do
 
     it "creates an image" do
       response = client.create_image_from_snapshot("test-container", "snapshot1")
-      response = client.wait_for_operation(response[:id])
+      response = client.wait_for_operation(response.id)
 
-      @fingerprint = response[:metadata][:fingerprint]
+      @fingerprint = response.metadata.fingerprint
       image = client.image(@fingerprint)
 
-			expect(image[:architecture]).to eq("x86_64")
-      expect(image[:public]).to eq(false)
+			expect(image.architecture).to eq("x86_64")
+      expect(image.public).to eq(false)
     end
 
     it "makes the correct API call" do
@@ -863,7 +953,7 @@ describe Hyperkit::Client::Images do
 						type: "snapshot",
             name: "test-container/snapshot1"
 					}})).
-          to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+          to_return(ok_response)
       client.create_image_from_snapshot("test-container", "snapshot1")
       assert_requested request
 		end
@@ -872,37 +962,37 @@ describe Hyperkit::Client::Images do
       it "stores them with the image" do
         response = client.create_image_from_snapshot("test-container", "snapshot1",
 					properties: { hello: "world %!@# how are you?!", test: 123 })
-      	response = client.wait_for_operation(response[:id])
+      	response = client.wait_for_operation(response.id)
 
-        @fingerprint = response[:metadata][:fingerprint]
+        @fingerprint = response.metadata.fingerprint
         image = client.image(@fingerprint)
 
-        expect(image[:properties][:hello]).to eq("world %!@# how are you?!")
-        expect(image[:properties][:test]).to eq("123")
+        expect(image.properties.hello).to eq("world %!@# how are you?!")
+        expect(image.properties.test).to eq("123")
 			end
     end
      
     context "when 'public': true is passed" do
       it "makes the image public" do
         response = client.create_image_from_snapshot("test-container", "snapshot1", public: true)
-      	response = client.wait_for_operation(response[:id])
+      	response = client.wait_for_operation(response.id)
 
-        @fingerprint = response[:metadata][:fingerprint]
+        @fingerprint = response.metadata.fingerprint
         image = client.image(@fingerprint)
 
-			  expect(image[:public]).to be_truthy
+			  expect(image.public).to be_truthy
       end
     end
 
     context "when public: true is not passed" do
       it "defaults to a private image" do
         response = client.create_image_from_snapshot("test-container", "snapshot1")
-      	response = client.wait_for_operation(response[:id])
+      	response = client.wait_for_operation(response.id)
 
-        @fingerprint = response[:metadata][:fingerprint]
+        @fingerprint = response.metadata.fingerprint
         image = client.image(@fingerprint)
 
-			  expect(image[:public]).to be_falsy
+			  expect(image.public).to be_falsy
       end
     end
 
@@ -910,31 +1000,26 @@ describe Hyperkit::Client::Images do
       it "stores the filename with the imported image" do
         response = client.create_image_from_snapshot("test-container", "snapshot1",
 					filename: "busybox-v1.tar.xz")
-      	response = client.wait_for_operation(response[:id])
+      	response = client.wait_for_operation(response.id)
 
-        @fingerprint = response[:metadata][:fingerprint]
+        @fingerprint = response.metadata.fingerprint
         image = client.image(@fingerprint)
 
-			  expect(image[:filename]).to eq("busybox-v1.tar.xz")
+			  expect(image.filename).to eq("busybox-v1.tar.xz")
       end
     end
 	end
 
   describe ".delete_image", :vcr do
 
-    it "deletes an existing image" do
-        response = client.create_image_from_snapshot("test-container", "snapshot1")
-      	response = client.wait_for_operation(response[:id])
-        fingerprint = response[:metadata][:fingerprint]
-
-        expect(client.images).to include(fingerprint)
-        client.delete_image(fingerprint)
-        expect(client.images).to_not include(fingerprint)
+    it "deletes an existing image", :image, :skip_delete do
+        expect(client.images).to include(@fingerprint)
+        client.delete_image(@fingerprint)
+        expect(client.images).to_not include(@fingerprint)
     end
 
     it "makes the correct API call" do
-      request = stub_delete("/1.0/images/test").
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+      request = stub_delete("/1.0/images/test").to_return(ok_response)
       client.delete_image("test")
       assert_requested request
     end
@@ -943,17 +1028,13 @@ describe Hyperkit::Client::Images do
 
   describe ".update_image", :vcr do
 
-    after do
-      client.delete_image(@fingerprint) if @fingerprint
-    end
-
     it "makes the correct API call" do
       request = stub_put("/1.0/images/test").
         with(body: hash_including({
           public: true,
           properties: { hello: "world" }
         })).
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response)
 
       client.update_image("test", public: true, properties: { hello: "world" })
       assert_requested request
@@ -961,13 +1042,7 @@ describe Hyperkit::Client::Images do
 
     context "when properties are passed" do
 
-      it "stores them with the image" do
-        @fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
-
-			  response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"),
-          properties: { description: "Busybox x86_64" })
-
-        client.wait_for_operation(response[:id])
+      it "stores them with the image", :image do
         image = client.image(@fingerprint)
 
         properties = image.properties.to_hash.merge({
@@ -983,15 +1058,7 @@ describe Hyperkit::Client::Images do
         expect(image.properties.description).to eq("Busybox x86_64")
       end
 
-      it "overwrites the existing properties" do
-
-        @fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
-
-			  response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"),
-          properties: { description: "Busybox x86_64" })
-
-        client.wait_for_operation(response[:id])
-
+      it "overwrites the existing properties", :image do
         image = client.image(@fingerprint)
         expect(image.properties.description).to eq("Busybox x86_64")
 
@@ -1011,76 +1078,65 @@ describe Hyperkit::Client::Images do
      
     context "when 'public': true is passed" do
 
-      it "makes the image public" do
-        @fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
-
-			  response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"))
-        client.wait_for_operation(response[:id])
-
+      it "makes the image public", :image do
         image = client.image(@fingerprint)
-        expect(image[:public]).to be_falsy
+        expect(image.public).to be_falsy
 
         client.update_image(@fingerprint, public: true)
 
         image = client.image(@fingerprint)
-        expect(image[:public]).to be_truthy
+        expect(image.public).to be_truthy
       end
 
     end
 
     context "when public: false is passed" do
 
-      it "makes the image private" do
-        @fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
-
-			  response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"), public: true)
-        client.wait_for_operation(response[:id])
-
+      it "makes the image private", :image, :public do
         image = client.image(@fingerprint)
-        expect(image[:public]).to be_truthy
+        expect(image.public).to be_truthy
 
         client.update_image(@fingerprint, public: false)
 
         image = client.image(@fingerprint)
-        expect(image[:public]).to be_falsy
+        expect(image.public).to be_falsy
       end
 
     end
 
     context "when 'auto_update': true is passed" do
 
-      it "sets the image to auto-update" do 
-      	response = client.create_image_from_remote("https://images.linuxcontainers.org:8443",
-					alias: "ubuntu/xenial/amd64", auto_update: false)
-      	response = client.wait_for_operation(response[:id])
-        @fingerprint = response[:metadata][:fingerprint]
-
+      it "sets the image to auto-update", :image do 
       	image = client.image(@fingerprint)
-				expect(image[:auto_update]).to be_falsy
+				expect(image.auto_update).to be_falsy
 
       	client.update_image(@fingerprint, auto_update: true)
       	image = client.image(@fingerprint)
 
-				expect(image[:auto_update]).to be_truthy
+				expect(image.auto_update).to be_truthy
       end
 
     end
 
     context "when 'auto_update': false is passed" do
 
-      it "disables auto-updating" do 
-      	response = client.create_image_from_remote("https://images.linuxcontainers.org:8443",
-					alias: "ubuntu/xenial/amd64", auto_update: true)
-      	response = client.wait_for_operation(response[:id])
-        @fingerprint = response[:metadata][:fingerprint]
+      it "disables auto-updating", :remote_image, :image, :skip_create do
+        response = client.create_image_from_remote(
+          "https://192.168.103.102:8443",
+			  	alias: "busybox/default", 
+          certificate: @remote_cert,
+					auto_update: true)
+        response = client.wait_for_operation(response.id)
 
+        @fingerprint = response.metadata.fingerprint
       	image = client.image(@fingerprint)
-				expect(image[:auto_update]).to be_truthy
+
+				expect(image.auto_update).to be_truthy
 
       	client.update_image(@fingerprint, auto_update: false)
       	image = client.image(@fingerprint)
 
-				expect(image[:auto_update]).to be_falsy
+				expect(image.auto_update).to be_falsy
       end
 
     end
@@ -1089,21 +1145,17 @@ describe Hyperkit::Client::Images do
 
   describe ".create_image_secret", :vcr do
 
-    it "creates a secret for an image" do
-      fingerprint = create_test_image
+    it "creates a secret for an image", :image do
+      secret = client.create_image_secret(@fingerprint)
+      expect { unauthenticated_client.image(@fingerprint) }.to raise_error(Hyperkit::NotFound)
 
-      secret = client.create_image_secret(fingerprint)
-      expect { unauthenticated_client.image(fingerprint) }.to raise_error(Hyperkit::NotFound)
-
-      image = unauthenticated_client.image(fingerprint, secret: secret)
-      expect(image.fingerprint).to eq(fingerprint)
-
-      delete_test_image
+      image = unauthenticated_client.image(@fingerprint, secret: secret)
+      expect(image.fingerprint).to eq(@fingerprint)
     end
 
     it "makes the correct API call" do
 			request = stub_post("/1.0/images/test/secret").
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response)
 
       client.create_image_secret("test")
       assert_requested request
@@ -1113,12 +1165,7 @@ describe Hyperkit::Client::Images do
 
   describe ".export_image", :vcr do
 
-    after do
-      client.delete_image(@fingerprint) if @fingerprint
-    end
-
-    it "exports an image to a file" do
-      @fingerprint = create_test_image
+    it "exports an image to a file", :image do
 
       Dir.mktmpdir("hyperkit") do |dir|
         output_file = client.export_image(@fingerprint, dir)
@@ -1128,8 +1175,7 @@ describe Hyperkit::Client::Images do
 
     end
 
-    it "returns the full path to the exported file" do
-      @fingerprint = create_test_image
+    it "returns the full path to the exported file", :image do
       image = client.image(@fingerprint)
 
       Dir.mktmpdir("hyperkit") do |dir|
@@ -1139,8 +1185,7 @@ describe Hyperkit::Client::Images do
 
     end
 
-    it "allows the filename to be overridden" do
-      @fingerprint = create_test_image
+    it "allows the filename to be overridden", :image do
       image = client.image(@fingerprint)
 
       Dir.mktmpdir("hyperkit") do |dir|
@@ -1152,10 +1197,9 @@ describe Hyperkit::Client::Images do
 
     it "makes the correct API calls" do
 			request1 = stub_get("/1.0/images/test").
-        to_return(status: 200, body: { metadata: { filename: "test.tar.xz" }}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response.merge(body: { metadata: { filename: "test.tar.xz" }}.to_json))
 
-			request2 = stub_get("/1.0/images/test/export").
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+			request2 = stub_get("/1.0/images/test/export").to_return(ok_response)
 
       Dir.mktmpdir("hyperkit") do |dir|
         client.export_image("test", dir)
@@ -1167,10 +1211,10 @@ describe Hyperkit::Client::Images do
 
     it "accepts a secret" do
 			request1 = stub_get("/1.0/images/test").
-        to_return(status: 200, body: { metadata: { filename: "test.tar.xz" }}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response.merge(body: { metadata: { filename: "test.tar.xz" }}.to_json))
 
 			request2 = stub_get("/1.0/images/test/export?secret=really-secret").
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+				to_return(ok_response)
 
       Dir.mktmpdir("hyperkit") do |dir|
         client.export_image("test", dir, secret: "really-secret")

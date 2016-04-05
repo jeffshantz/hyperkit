@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Hyperkit::Client::Certificates do
 
-  let(:client) { Hyperkit::Client.new }
+  let(:client) { lxd }
 
   describe ".certificates", :vcr do
 

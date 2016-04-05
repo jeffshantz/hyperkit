@@ -3,7 +3,7 @@ require 'time'
 
 describe Hyperkit::Client::Operations do
 
-  let(:client) { Hyperkit::Client.new }
+  let(:client) { lxd } 
   let(:operation) {
     {
       id: "b8d84888-1dc2-44fd-b386-7f679e171ba5",
@@ -49,21 +49,23 @@ describe Hyperkit::Client::Operations do
     end
 
     it "returns a flat array of operations" do
+
       body = { metadata: {
         running: [
           "/1.0/operations/18b45cfd-30e4-43b3-8f28-91d00701cdb3",
           "/1.0/operations/ec271d63-c43a-4c21-8cd7-d6899333b3f0"
         ]
-      }}.to_json
+      }}
 
       stub_get("/1.0/operations").
-        to_return(:status => 200, body: body, :headers => {'Content-Type' => 'application/json'})
+        to_return(ok_response.merge(body: body.to_json))
 
       operations = client.operations
       expect(operations).to eq(%w[
         18b45cfd-30e4-43b3-8f28-91d00701cdb3
         ec271d63-c43a-4c21-8cd7-d6899333b3f0
       ])
+
     end
 
     it "makes the correct API call" do
@@ -73,19 +75,22 @@ describe Hyperkit::Client::Operations do
 
   end
 
-  describe ".operation" do
+  describe ".operation", :vcr do
 
     it "retrieves an operation" do
       stub_get("/1.0/operations/b8d84888-1dc2-44fd-b386-7f679e171ba5").
-        to_return(:status => 200, body: operation.to_json, :headers => {'Content-Type' => 'application/json'})
+        to_return(ok_response.merge(body: operation.to_json))
 
       op = client.operation("b8d84888-1dc2-44fd-b386-7f679e171ba5")
-      expect(op).to eq(operation.merge(created_at: Time.parse(operation[:created_at]), updated_at: Time.parse(operation[:updated_at])))
+      expect(op).to eq(operation.merge(
+        created_at: Time.parse(operation[:created_at]),
+        updated_at: Time.parse(operation[:updated_at]))
+      )
     end
 
     it "makes the correct API call" do
       request = stub_get("/1.0/operations/b8d84888-1dc2-44fd-b386-7f679e171ba5").
-        to_return(:status => 200, body: operation.to_json, :headers => {'Content-Type' => 'application/json'})
+        to_return(ok_response.merge(body: operation.to_json))
 
       op = client.operation("b8d84888-1dc2-44fd-b386-7f679e171ba5")
       assert_requested request
@@ -93,11 +98,11 @@ describe Hyperkit::Client::Operations do
 
   end
 
-  describe ".wait_for_operation" do
+  describe ".wait_for_operation", :vcr do
 
     it "defaults to an indefinite timeout" do
       request = stub_get("/1.0/operations/b8d84888-1dc2-44fd-b386-7f679e171ba5/wait").
-        to_return(:status => 200, body: {}.to_json, :headers => {'Content-Type' => 'application/json'})
+        to_return(ok_response)
 
       client.wait_for_operation("b8d84888-1dc2-44fd-b386-7f679e171ba5")
       assert_requested request
@@ -105,24 +110,26 @@ describe Hyperkit::Client::Operations do
 
     it "accepts a numeric timeout in seconds" do
       request = stub_get("/1.0/operations/b8d84888-1dc2-44fd-b386-7f679e171ba5/wait?timeout=5").
-        to_return(:status => 200, body: {}.to_json, :headers => {'Content-Type' => 'application/json'})
+        to_return(ok_response)
       client.wait_for_operation("b8d84888-1dc2-44fd-b386-7f679e171ba5", 5)
       assert_requested request
     end
 
 		it "raises an error if the operation fails" do
 			request = stub_get("/1.0/operations/b8d84888-1dc2-44fd-b386-7f679e171ba5/wait").
-  		  to_return(:status => 200, body: { metadata: failed_operation }.to_json, :headers => {'Content-Type' => 'application/json'})
-  		expect { client.wait_for_operation("b8d84888-1dc2-44fd-b386-7f679e171ba5") }.to raise_error(Hyperkit::Error)
+  		  to_return(ok_response.merge(body: { metadata: failed_operation }.to_json))
+
+      call = lambda { client.wait_for_operation("b8d84888-1dc2-44fd-b386-7f679e171ba5")  }
+  		expect(call).to raise_error(Hyperkit::Error)
 		end
 
   end
 
-  describe ".cancel_operation" do
+  describe ".cancel_operation", :vcr do
 
     it "makes the correct API call" do
       request = stub_delete("/1.0/operations/b8d84888-1dc2-44fd-b386-7f679e171ba5").
-        to_return(:status => 202, body: {}.to_json, :headers => {'Content-Type' => 'application/json'})
+        to_return(accepted_response)
       client.cancel_operation("b8d84888-1dc2-44fd-b386-7f679e171ba5")
       assert_requested request
     end

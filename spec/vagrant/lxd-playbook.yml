@@ -1,0 +1,108 @@
+- hosts: all
+  become: true
+  become_method: sudo
+  tasks:
+    - name: install btrfs
+      package: name=btrfs-tools state=present
+      register: btrfs
+
+    - name: create btrfs file system for lxd
+      shell: |
+        mkfs.btrfs /dev/sdb
+      when: btrfs.changed
+
+    - name: mount 'lxd' btrfs subvolume
+      mount:
+        name: /var/lib/lxd
+        src: /dev/sdb
+        fstype: btrfs
+        opts: defaults
+        state: mounted
+
+    - name: add LXD PPA
+      apt_repository: repo='ppa:ubuntu-lxc/lxd-stable'
+    
+    - name: update packages
+      apt: update_cache=yes
+    
+    - name: install language-pack-en
+      package: name=language-pack-en state=present
+
+    - name: install lxd
+      package: name=lxd state=present
+
+    - name: enable API
+      shell: "lxc config set core.https_address 0.0.0.0:{{ lxd_port }}"
+
+    - name: configure trust password
+      shell: "lxc config set core.trust_password {{ lxd_trust_password }}"
+
+    - name: add 'vagrant' user to lxd group
+      user: name=vagrant groups=lxd append=yes
+
+- hosts: all
+  # Required so that Ansible logs back in under the vagrant user with the lxd group applied
+  connection: paramiko
+  tasks:
+    - name: generate certificate for 'vagrant' user
+      shell: lxc list
+
+    - name: copy certificate from host system
+      copy:
+        src: ../fixtures/client.crt
+        dest: /home/vagrant/host-system.crt
+
+    - name: trust host system certificate
+      shell: lxc config trust add /home/vagrant/host-system.crt
+
+    - name: copy pre-defined Cirros image to VM
+      copy:
+        src: cirros-0.3.4-x86_64-lxd.tar.xz
+        dest: /home/vagrant/cirros-0.3.4-x86_64-lxd.tar.xz
+
+- hosts: all
+  become: true
+  become_method: sudo
+  tasks:
+    - name: import Cirros image
+      shell: lxc image import /home/vagrant/cirros-0.3.4-x86_64-lxd.tar.xz --alias cirros
+      args:
+        creates: /var/lib/lxd/images/b41f6b96f103335eafbf38ba65488eda66b05b08b590130e473803631d66ff38
+
+- hosts: lxd2
+  become: true
+  become_method: sudo
+  tasks:
+    - name: install apache
+      package: name=apache2 state=installed
+
+    - name: copy apache config
+      copy:
+        src: 000-default.conf
+        dest: /etc/apache2/sites-available/000-default.conf
+        owner: root
+        group: root
+        mode: 0644
+      notify: restart apache
+
+    - name: enable apache config
+      command: a2ensite 000-default
+      args:
+        creates: /etc/apache2/sites-enabled/000-default.conf
+      notify: restart apache
+
+    - name: copy image
+      copy:
+        src: ../fixtures/busybox-1.21.1-amd64-lxc.tar.xz
+        dest: /var/www/html/busybox-1.21.1-amd64-lxc.tar.xz
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: enable 'headers' apache module
+      apache2_module: state=present name=headers
+      notify: restart apache
+
+  handlers:
+    - name: restart apache
+      service: name=apache2 state=restarted
