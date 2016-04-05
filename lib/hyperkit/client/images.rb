@@ -192,14 +192,16 @@ module Hyperkit
       #   Hyperkit.client.update_image_alias("ubuntu/xenial/amd64", description: "Ubuntu 16.04")
       def update_image_alias(alias_name, options={})
 
-        options = options.slice(:description, :target)
-
         if options.empty?
           raise Hyperkit::AliasAttributesRequired.new("At least one of :target or :description required")
         end
 
-        response = put image_alias_path(alias_name), options
-        response[:metadata]
+        existing_options = image_alias(alias_name).to_hash
+        opts = existing_options.slice(:description, :target).
+                                merge(options.slice(:description, :target))
+
+        response = put image_alias_path(alias_name), opts
+        response.metadata
       end
 
       # Upload an image from a local file

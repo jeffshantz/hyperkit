@@ -252,5 +252,12 @@ module Hyperkit
   # provided
   class InvalidProtocol < StandardError; end
 
+  # Raise when a method is passed image attributes that are illegal
+  # (e.g. creating a container from a local image, but passing a protocol)
+  class InvalidImageAttributes < StandardError; end
+
+  # Raise when profiles are specified that do not exist on the server
+  class MissingProfiles < StandardError; end
+
 end
 
