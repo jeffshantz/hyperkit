@@ -521,6 +521,33 @@ module Hyperkit
         response.metadata.map { |path| path.split('/').last }
       end
 
+      alias_method :snapshots, :container_snapshots
+
+      # Create a snapshot of a container
+      #
+      # If <code>stateful: true</code> is passed when creating a snapshot of a 
+      # running container, the container's runtime state will be stored in the
+      # snapshot.  Note that CRIU must be installed on the server to create a 
+      # stateful snapshot, or LXD will return a 500 error.  On Ubuntu, you can
+      # install it with 
+      # <code>sudo apt-get install criu</code>.
+      #
+      # @param container [String] Container name
+      # @param snapshot [String] Snapshot name
+      # @param options [Hash] Additional data to be passed
+      # @option options [Boolean] :stateful Whether to save runtime state for a running container (requires CRIU on the server; default: <code>false</false>)
+      # @example Create stateless snapshot for container 'test'
+      #   Hyperkit.client.create_container_snapshot("test", "snap1")
+      # @example Create snapshot and save runtime state for running container 'test'
+      #   Hyperkit.client.create_container_snapshot("test", "snap1", stateful: true)
+      def create_container_snapshot(container, snapshot, options={})
+        opts = options.slice(:stateful)
+        opts[:name] = snapshot
+        post(container_snapshots_path(container), opts).metadata
+      end
+
+      alias_method :create_snapshot, :create_container_snapshot
+
       private
 
       def container_snapshots_path(name)

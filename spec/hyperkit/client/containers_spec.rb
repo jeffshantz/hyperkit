@@ -1554,4 +1554,53 @@ describe Hyperkit::Client::Containers do
 
   end
 
+  describe ".create_container_snapshot", :vcr do
+
+    it "make the correct API call" do
+      request = stub_post("/1.0/containers/test/snapshots").
+        with(body: hash_including({
+          name: "snap",
+        })).
+        to_return(ok_response.merge(body: { metadata: [] }.to_json))
+
+      snapshots = client.create_container_snapshot("test", "snap")
+      assert_requested request
+    end
+
+    it "creates a snapshot of a stopped container", :container do
+      response = client.create_container_snapshot("test-container", "test-snapshot")
+      client.wait_for_operation(response.id)
+
+      snapshots = client.container_snapshots("test-container")
+      expect(snapshots).to include("test-snapshot")
+    end
+
+    it "creates a stateless snapshot of a running container", :container, :running do
+      response = client.create_container_snapshot("test-container", "test-snapshot")
+      client.wait_for_operation(response.id)
+
+      snapshots = client.container_snapshots("test-container")
+      expect(snapshots).to include("test-snapshot")
+
+      #TODO: Verify that it's stateless
+    end
+
+    context "when 'stateful: true' is passed" do
+
+      it "passes it to the server" do
+        request = stub_post("/1.0/containers/test/snapshots").
+          with(body: hash_including({
+            name: "snap",
+            stateful: true
+          })).
+          to_return(ok_response.merge(body: { metadata: [] }.to_json))
+
+        snapshots = client.create_container_snapshot("test", "snap", stateful: true)
+        assert_requested request
+      end
+
+    end
+
+  end
+
 end
