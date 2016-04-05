@@ -1554,6 +1554,23 @@ describe Hyperkit::Client::Containers do
 
   end
 
+  describe ".container_snapshot", :vcr do
+
+    it "retrieves a snapshot", :container, :snapshot do
+      snapshot = client.container_snapshot("test-container", "test-snapshot")
+      expect(snapshot.name).to eq("test-container/test-snapshot")
+      expect(snapshot.architecture).to eq("x86_64")
+    end
+
+    it "makes the correct API call" do
+      request = stub_get("/1.0/containers/test/snapshots/snap").to_return(ok_response)
+
+      client.container_snapshot("test", "snap")
+      assert_requested request
+    end
+
+  end
+
   describe ".create_container_snapshot", :vcr do
 
     it "make the correct API call" do
@@ -1582,7 +1599,8 @@ describe Hyperkit::Client::Containers do
       snapshots = client.container_snapshots("test-container")
       expect(snapshots).to include("test-snapshot")
 
-      #TODO: Verify that it's stateless
+      snapshot = client.container_snapshot("test-container", "test-snapshot")
+      expect(snapshot.stateful).to be_falsy
     end
 
     context "when 'stateful: true' is passed" do
