@@ -10,3 +10,4 @@
 /.ruby-gemset
 /.ruby-version
 /.vagrant
+.*.swp

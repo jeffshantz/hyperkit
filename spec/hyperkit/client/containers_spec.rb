@@ -1521,4 +1521,37 @@ describe Hyperkit::Client::Containers do
 
   end
 
+  describe ".container_snapshots", :vcr do
+
+    it "returns an array of snapshots for a container", :container do
+      snapshots = client.container_snapshots("test-container")
+      expect(snapshots).to be_kind_of(Array)
+    end
+
+    it "makes the correct API call" do
+      request = stub_get("/1.0/containers/test/snapshots").
+        to_return(ok_response.merge(body: { metadata: [] }.to_json))
+
+      snapshots = client.container_snapshots("test")
+      assert_requested request
+    end
+
+    it "returns only the image names and not their paths" do
+
+      body = { metadata: [
+        "/1.0/containers/test/snapshots/test1",
+        "/1.0/containers/test/snapshots/test2",
+        "/1.0/containers/test/snapshots/test3",
+        "/1.0/containers/test/snapshots/test4"
+      ]}.to_json
+
+      stub_get("/1.0/containers/test/snapshots").
+        to_return(ok_response.merge(body: body))
+
+      snapshots = client.container_snapshots("test")
+      expect(snapshots).to eq(%w[test1 test2 test3 test4])
+    end
+
+  end
+
 end
