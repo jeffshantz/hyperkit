@@ -565,6 +565,8 @@ module Hyperkit
         get(container_snapshot_path(container, snapshot)).metadata
       end
 
+      alias_method :snapshot, :container_snapshot
+
       # Create a snapshot of a container
       #
       # If <code>stateful: true</code> is passed when creating a snapshot of a 
@@ -589,6 +591,20 @@ module Hyperkit
       end
 
       alias_method :create_snapshot, :create_container_snapshot
+
+      # Delete a snapshot
+      #
+      # @param container [String] Container name
+      # @param snapshot [String] Snapshot name
+      #
+      # @example Delete snapshot "snap" from container "test"
+      #   Hyperkit.client.delete_container_snapshot("test", "snap")
+      #
+      def delete_container_snapshot(container, snapshot)
+        delete(container_snapshot_path(container, snapshot)).metadata
+      end
+
+      alias_method :delete_snapshot, :delete_container_snapshot
 
       private
 
