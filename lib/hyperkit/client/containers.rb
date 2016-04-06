@@ -430,8 +430,8 @@ module Hyperkit
       def init_migration(container, snapshot=nil)
 
         if snapshot
-          url = container_snapshot_path(container, snapshot)
-          source = container_snapshot(container, snapshot)
+          url = snapshot_path(container, snapshot)
+          source = snapshot(container, snapshot)
         else
           url = container_path(container)
           source = container(container)
@@ -550,13 +550,11 @@ module Hyperkit
       # @param container [String] Container name
       # @return [Array<String>] An array of snapshot names
       # @example Get list of snapshots for container "test"
-      #   Hyperkit.client.container_snapshots("test") #=> ["snap1", "snap2", "snap3"]
-      def container_snapshots(container)
-        response = get container_snapshots_path(container)
+      #   Hyperkit.client.snapshots("test") #=> ["snap1", "snap2", "snap3"]
+      def snapshots(container)
+        response = get snapshots_path(container)
         response.metadata.map { |path| path.split('/').last }
       end
-
-      alias_method :snapshots, :container_snapshots
 
       # Get information on a snapshot
       #
@@ -565,7 +563,7 @@ module Hyperkit
       # @return [Sawyer::Resource] Snapshot information
       #
       # @example Get information about a snapshot
-      #   Hyperkit.client.container_snapshot("test-container", "test-snapshot") #=> {
+      #   Hyperkit.client.snapshot("test-container", "test-snapshot") #=> {
       #     :architecture => "x86_64",
       #     :config => {
       #       :"volatile.apply_template" => "create",
@@ -596,11 +594,9 @@ module Hyperkit
       #     :profiles => ["default"],
       #     :stateful => false
       #   }
-      def container_snapshot(container, snapshot)
-        get(container_snapshot_path(container, snapshot)).metadata
+      def snapshot(container, snapshot)
+        get(snapshot_path(container, snapshot)).metadata
       end
-
-      alias_method :snapshot, :container_snapshot
 
       # Create a snapshot of a container
       #
@@ -616,16 +612,14 @@ module Hyperkit
       # @param options [Hash] Additional data to be passed
       # @option options [Boolean] :stateful Whether to save runtime state for a running container (requires CRIU on the server; default: <code>false</false>)
       # @example Create stateless snapshot for container 'test'
-      #   Hyperkit.client.create_container_snapshot("test", "snap1")
+      #   Hyperkit.client.create_snapshot("test", "snap1")
       # @example Create snapshot and save runtime state for running container 'test'
-      #   Hyperkit.client.create_container_snapshot("test", "snap1", stateful: true)
-      def create_container_snapshot(container, snapshot, options={})
+      #   Hyperkit.client.create_snapshot("test", "snap1", stateful: true)
+      def create_snapshot(container, snapshot, options={})
         opts = options.slice(:stateful)
         opts[:name] = snapshot
-        post(container_snapshots_path(container), opts).metadata
+        post(snapshots_path(container), opts).metadata
       end
-
-      alias_method :create_snapshot, :create_container_snapshot
 
       # Delete a snapshot
       #
@@ -633,13 +627,11 @@ module Hyperkit
       # @param snapshot [String] Snapshot name
       #
       # @example Delete snapshot "snap" from container "test"
-      #   Hyperkit.client.delete_container_snapshot("test", "snap")
+      #   Hyperkit.client.delete_snapshot("test", "snap")
       #
-      def delete_container_snapshot(container, snapshot)
-        delete(container_snapshot_path(container, snapshot)).metadata
+      def delete_snapshot(container, snapshot)
+        delete(snapshot_path(container, snapshot)).metadata
       end
-
-      alias_method :delete_snapshot, :delete_container_snapshot
 
       # Rename a snapshot
       #
@@ -648,18 +640,29 @@ module Hyperkit
       # @param new_name [String] New snapshot name
       #
       # @example Rename snapshot "test/snap1" to "snap2"
-      #   Hyperkit.client.rename_container_snapshot("test", "snap1", "snap2")
-      def rename_container_snapshot(container, old_name, new_name)
-        post(container_snapshot_path(container, old_name), { "name": new_name }).metadata
+      #   Hyperkit.client.rename_snapshot("test", "snap1", "snap2")
+      def rename_snapshot(container, old_name, new_name)
+        post(snapshot_path(container, old_name), { "name": new_name }).metadata
+      end
+
+      # Restore a snapshot
+      #
+      # @param container [String] Container name
+      # @param snapshot [String] Name of snapshot to restore
+      #
+      # @example Restore container "test" back to snapshot "snap1"
+      #   Hyperkit.client.restore_snapshot("test", "snap1")
+      def restore_snapshot(container, snapshot)
+        put(container_path(container), { "restore": snapshot }).metadata
       end
 
       private
 
-      def container_snapshot_path(container, snapshot)
-        File.join(container_snapshots_path(container), snapshot)
+      def snapshot_path(container, snapshot)
+        File.join(snapshots_path(container), snapshot)
       end
 
-      def container_snapshots_path(name)
+      def snapshots_path(name)
         File.join(container_path(name), "snapshots")
       end
 

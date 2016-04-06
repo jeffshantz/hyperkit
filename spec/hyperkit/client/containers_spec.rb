@@ -1605,10 +1605,10 @@ describe Hyperkit::Client::Containers do
 
   end
 
-  describe ".container_snapshots", :vcr do
+  describe ".snapshots", :vcr do
 
     it "returns an array of snapshots for a container", :container do
-      snapshots = client.container_snapshots("test-container")
+      snapshots = client.snapshots("test-container")
       expect(snapshots).to be_kind_of(Array)
     end
 
@@ -1616,7 +1616,7 @@ describe Hyperkit::Client::Containers do
       request = stub_get("/1.0/containers/test/snapshots").
         to_return(ok_response.merge(body: { metadata: [] }.to_json))
 
-      snapshots = client.container_snapshots("test")
+      snapshots = client.snapshots("test")
       assert_requested request
     end
 
@@ -1632,16 +1632,16 @@ describe Hyperkit::Client::Containers do
       stub_get("/1.0/containers/test/snapshots").
         to_return(ok_response.merge(body: body))
 
-      snapshots = client.container_snapshots("test")
+      snapshots = client.snapshots("test")
       expect(snapshots).to eq(%w[test1 test2 test3 test4])
     end
 
   end
 
-  describe ".container_snapshot", :vcr do
+  describe ".snapshot", :vcr do
 
     it "retrieves a snapshot", :container, :snapshot do
-      snapshot = client.container_snapshot("test-container", "test-snapshot")
+      snapshot = client.snapshot("test-container", "test-snapshot")
       expect(snapshot.name).to eq("test-container/test-snapshot")
       expect(snapshot.architecture).to eq("x86_64")
     end
@@ -1649,13 +1649,13 @@ describe Hyperkit::Client::Containers do
     it "makes the correct API call" do
       request = stub_get("/1.0/containers/test/snapshots/snap").to_return(ok_response)
 
-      client.container_snapshot("test", "snap")
+      client.snapshot("test", "snap")
       assert_requested request
     end
 
   end
 
-  describe ".create_container_snapshot", :vcr do
+  describe ".create_snapshot", :vcr do
 
     it "make the correct API call" do
       request = stub_post("/1.0/containers/test/snapshots").
@@ -1664,26 +1664,26 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response.merge(body: { metadata: [] }.to_json))
 
-      snapshots = client.create_container_snapshot("test", "snap")
+      snapshots = client.create_snapshot("test", "snap")
       assert_requested request
     end
 
     it "creates a snapshot of a stopped container", :container do
-      response = client.create_container_snapshot("test-container", "test-snapshot")
+      response = client.create_snapshot("test-container", "test-snapshot")
       client.wait_for_operation(response.id)
 
-      snapshots = client.container_snapshots("test-container")
+      snapshots = client.snapshots("test-container")
       expect(snapshots).to include("test-snapshot")
     end
 
     it "creates a stateless snapshot of a running container", :container, :running do
-      response = client.create_container_snapshot("test-container", "test-snapshot")
+      response = client.create_snapshot("test-container", "test-snapshot")
       client.wait_for_operation(response.id)
 
-      snapshots = client.container_snapshots("test-container")
+      snapshots = client.snapshots("test-container")
       expect(snapshots).to include("test-snapshot")
 
-      snapshot = client.container_snapshot("test-container", "test-snapshot")
+      snapshot = client.snapshot("test-container", "test-snapshot")
       expect(snapshot.stateful).to be_falsy
     end
 
@@ -1697,7 +1697,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response.merge(body: { metadata: [] }.to_json))
 
-        snapshots = client.create_container_snapshot("test", "snap", stateful: true)
+        snapshots = client.create_snapshot("test", "snap", stateful: true)
         assert_requested request
       end
 
@@ -1705,32 +1705,32 @@ describe Hyperkit::Client::Containers do
 
   end
 
-  describe ".delete_container_snapshot", :vcr do
+  describe ".delete_snapshot", :vcr do
 
     it "deletes the snapshot", :container, :snapshot do
-      expect(client.container_snapshots("test-container")).to include("test-snapshot")
+      expect(client.snapshots("test-container")).to include("test-snapshot")
 
-      response = client.delete_container_snapshot("test-container", "test-snapshot")
+      response = client.delete_snapshot("test-container", "test-snapshot")
       client.wait_for_operation(response.id)
 
-      expect(client.container_snapshots("test-container")).to_not include("test-snapshot")
+      expect(client.snapshots("test-container")).to_not include("test-snapshot")
     end
 
     it "makes the correct API call" do
       request = stub_delete("/1.0/containers/test/snapshots/snap").to_return(ok_response)
-      client.delete_container_snapshot("test","snap")
+      client.delete_snapshot("test","snap")
       assert_requested request
     end
 
   end
 
-  describe ".rename_container_snapshot", :vcr do
+  describe ".rename_snapshot", :vcr do
 
     it "renames a snapshot", :container, :snapshot do
       expect(client.snapshots("test-container")).to include("test-snapshot")
       expect(client.snapshots("test-container")).to_not include("test-snapshot2")
 
-      response = client.rename_container_snapshot("test-container", "test-snapshot", "test-snapshot2")
+      response = client.rename_snapshot("test-container", "test-snapshot", "test-snapshot2")
       client.wait_for_operation(response.id)
 
       expect(client.snapshots("test-container")).to_not include("test-snapshot")
@@ -1744,8 +1744,50 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response)
 
-      client.rename_container_snapshot("test", "snap", "snap2")
+      client.rename_snapshot("test", "snap", "snap2")
       assert_requested request
+    end
+
+  end
+
+  describe ".restore_snapshot", :vcr do
+
+    it "restores a snapshot", :container do
+
+      response = client.create_snapshot("test-container", "test-snapshot")
+      client.wait_for_operation(response.id)
+
+      container = client.container("test-container")
+      container.config = container.config.to_hash.merge("limits.memory" => "256MB")
+
+      response = client.update_container("test-container", container)
+      client.wait_for_operation(response.id)
+
+      container_before = client.container("test-container")
+
+      response = client.restore_snapshot("test-container", "test-snapshot")
+      client.wait_for_operation(response.id)
+
+      container_after = client.container("test-container")
+
+      expect(container_before.config.to_hash).to have_key(:"volatile.apply_template")
+      expect(container_after.config.to_hash).to have_key(:"volatile.apply_template")
+
+      expect(container_before.config["limits.memory"]).to eq("256MB")
+      expect(container_after.config["limits.memory"]).to be_nil
+
+    end
+
+    it "makes the correct API call" do
+      request = stub_put("/1.0/containers/test").
+        with(body: hash_including({
+          restore: "snap"
+        })).
+        to_return(ok_response)
+
+      client.restore_snapshot("test", "snap")
+      assert_requested request
+
     end
 
   end
