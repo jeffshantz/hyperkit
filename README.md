@@ -115,6 +115,11 @@ Currently, we support:
   * `DELETE /1.0/containers/<name>`
   * `GET /1.0/containers/<name>/state`
   * `PUT /1.0/containers/<name>/state`
+  * `GET /1.0/containers/<name>/snapshots`
+  * `POST /1.0/containers/<name>/snapshots`
+  * `GET /1.0/containers/<name>/snapshots/<name>`
+  * `POST /1.0/containers/<name>/snapshots/<name>`
+  * `DELETE /1.0/containers/<name>/snapshots/<name>`
 * `/1.0/images`
 * `/1.0/networks`
 * `/1.0/operations` (except `/1.0/operations/<uuid>/websocket`)

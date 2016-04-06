@@ -927,17 +927,12 @@ describe Hyperkit::Client::Images do
 
   describe ".create_image_from_snapshot", :vcr do
 
-		before do
-      # TODO: create the test snapshot
-		end
-
     after do
 			client.delete_image(@fingerprint) if @fingerprint
-      # TODO: delete the test snapshot
 		end
 
-    it "creates an image" do
-      response = client.create_image_from_snapshot("test-container", "snapshot1")
+    it "creates an image", :container, :snapshot do
+      response = client.create_image_from_snapshot("test-container", "test-snapshot")
       response = client.wait_for_operation(response.id)
 
       @fingerprint = response.metadata.fingerprint
@@ -959,9 +954,13 @@ describe Hyperkit::Client::Images do
 		end
 
     context "when properties are passed" do
-      it "stores them with the image" do
-        response = client.create_image_from_snapshot("test-container", "snapshot1",
-					properties: { hello: "world %!@# how are you?!", test: 123 })
+
+      it "stores them with the image", :container, :snapshot do
+        response = client.create_image_from_snapshot(
+          "test-container",
+          "test-snapshot",
+					properties: { hello: "world %!@# how are you?!", test: 123 }
+        )
       	response = client.wait_for_operation(response.id)
 
         @fingerprint = response.metadata.fingerprint
@@ -970,11 +969,17 @@ describe Hyperkit::Client::Images do
         expect(image.properties.hello).to eq("world %!@# how are you?!")
         expect(image.properties.test).to eq("123")
 			end
+
     end
      
     context "when 'public': true is passed" do
-      it "makes the image public" do
-        response = client.create_image_from_snapshot("test-container", "snapshot1", public: true)
+
+      it "makes the image public", :container, :snapshot do
+        response = client.create_image_from_snapshot(
+          "test-container",
+          "test-snapshot",
+          public: true
+        )
       	response = client.wait_for_operation(response.id)
 
         @fingerprint = response.metadata.fingerprint
@@ -982,11 +987,13 @@ describe Hyperkit::Client::Images do
 
 			  expect(image.public).to be_truthy
       end
+
     end
 
     context "when public: true is not passed" do
-      it "defaults to a private image" do
-        response = client.create_image_from_snapshot("test-container", "snapshot1")
+
+      it "defaults to a private image", :container, :snapshot do
+        response = client.create_image_from_snapshot("test-container", "test-snapshot")
       	response = client.wait_for_operation(response.id)
 
         @fingerprint = response.metadata.fingerprint
@@ -994,12 +1001,17 @@ describe Hyperkit::Client::Images do
 
 			  expect(image.public).to be_falsy
       end
+
     end
 
     context "when a filename is passed" do
-      it "stores the filename with the imported image" do
-        response = client.create_image_from_snapshot("test-container", "snapshot1",
-					filename: "busybox-v1.tar.xz")
+
+      it "stores the filename with the imported image", :container, :snapshot do
+        response = client.create_image_from_snapshot(
+          "test-container",
+          "test-snapshot",
+					filename: "busybox-v1.tar.xz"
+        )
       	response = client.wait_for_operation(response.id)
 
         @fingerprint = response.metadata.fingerprint
@@ -1007,7 +1019,9 @@ describe Hyperkit::Client::Images do
 
 			  expect(image.filename).to eq("busybox-v1.tar.xz")
       end
+
     end
+
 	end
 
   describe ".delete_image", :vcr do
