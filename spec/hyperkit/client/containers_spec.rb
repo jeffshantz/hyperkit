@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'tmpdir'
 
 describe Hyperkit::Client::Containers do
 
@@ -1790,6 +1791,133 @@ describe Hyperkit::Client::Containers do
 
     end
 
+  end
+
+  shared_examples_for "a file retrieval method" do
+
+    context "when the source path does not exist" do
+
+      it "raises an error", :container do
+				expect { retrieval_method.call("test-container", "/qwe") }.to raise_error(Hyperkit::NotFound)
+      end
+
+    end
+
+    context "when the source path is a directory" do
+
+      it "raises an error", :container do
+				expect { retrieval_method.call("test-container", "/etc") }.to raise_error(Hyperkit::BadRequest)
+      end
+
+    end
+
+  end
+
+  describe ".read_file", :vcr do
+
+		it_behaves_like "a file retrieval method" do
+			let(:retrieval_method) { lambda { |container, path| client.read_file(container, path) } }
+		end
+
+    context "when a valid file is specified" do
+
+      it "makes the correct API call" do
+
+        request = stub_get("/1.0/containers/test/files?path=/etc/passwd&url_encode=false").
+          to_return(ok_response)
+
+        client.read_file("test", "/etc/passwd")
+        assert_requested request
+
+      end
+
+      it "returns the file contents", :container do
+				response = client.read_file("test-container", "/etc/passwd")
+				expect(response).to include("cirros:x:1000:1000")
+      end
+
+    end
+
+  end
+
+  describe ".pull_file", :vcr do
+
+		it_behaves_like "a file retrieval method" do
+			let(:retrieval_method) { lambda { |container, path| client.pull_file(container, path, "/tmp/test.txt") } }
+		end
+
+		it "makes the correct API call" do
+
+			request = stub_get("/1.0/containers/test/files?path=/etc/passwd&url_encode=false").
+				to_return(ok_response)
+
+			Dir.mktmpdir do |dir|
+				client.pull_file("test", "/etc/passwd", File.join(dir, "test-passwd"))
+				assert_requested request
+			end
+
+		end
+
+		it "saves the file to the specified filename", :container do
+
+			Dir.mktmpdir do |dir|
+				output_file = File.join(dir, "test-passwd")
+				client.pull_file("test-container", "/etc/passwd", output_file)
+				expect(File.exist?(output_file)).to be_truthy
+			end
+
+		end
+
+		it "writes the file with the permissions of the original file", :container do
+
+			Dir.mktmpdir do |dir|
+				output_file = File.join(dir, "test-passwd")
+				client.pull_file("test-container", "/etc/passwd", output_file)
+				expect(File.stat(output_file).mode & 0777).to eq(0600)
+			end
+			
+		end
+
+		it "returns the full path of the output file", :container do
+
+			Dir.mktmpdir do |dir|
+				output_file = File.join(dir, "test-passwd")
+				ret_val = client.pull_file("test-container", "/etc/passwd", output_file)
+				expect(ret_val).to eq(output_file)
+			end
+
+		end
+
+		context "when the path to the output path does not exist" do
+
+			it "raises an error", :container do
+
+			  Dir.mktmpdir do |dir|
+          call = lambda do
+			  	  client.pull_file("test-container", "/etc/passwd", File.join(dir,"test/test"))
+          end
+          expect(call).to raise_error(Errno::ENOENT)
+			  end
+
+      end
+
+		end
+
+		context "when the output path is a directory" do
+
+			it "raises an error", :container do
+
+			  Dir.mktmpdir do |dir|
+          call = lambda do
+			  	  client.pull_file("test-container", "/etc/passwd", dir)
+          end
+          expect(call).to raise_error(Errno::EISDIR)
+			  end
+
+      end
+
+		end
+	
   end
 
 end
