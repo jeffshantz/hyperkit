@@ -51,7 +51,7 @@ module Hyperkit
         when 415      then Hyperkit::UnsupportedMediaType
         when 422      then Hyperkit::UnprocessableEntity
         when 400..499 then Hyperkit::ClientError
-        when 500      then Hyperkit::InternalServerError
+        when 500      then error_for_500(response)
         when 501      then Hyperkit::NotImplemented
         when 502      then Hyperkit::BadGateway
         when 503      then Hyperkit::ServiceUnavailable
@@ -81,6 +81,18 @@ module Hyperkit
       else
         []
       end
+    end
+
+    def self.error_for_500(response)
+			
+      if response.body =~ /open: no such file or directory/i
+        Hyperkit::NotFound
+      elsif response.body =~ /open: is a directory/i
+        Hyperkit::BadRequest
+			else
+        Hyperkit::InternalServerError
+      end
+     
     end
 
     private

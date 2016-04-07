@@ -124,6 +124,8 @@ module Hyperkit
       if data.is_a?(Hash)
         options[:query]   = data.delete(:query) || {}
         options[:headers] = data.delete(:headers) || {}
+        url_encode = data.delete(:url_encode) || true
+
         if accept = data.delete(:accept)
           options[:headers][:accept] = accept
         end
@@ -132,7 +134,9 @@ module Hyperkit
         end
       end
 
-      @last_response = response = agent.call(method, URI::Parser.new.escape(path.to_s), data, options)
+      path = URI::Parser.new.escape(path.to_s) if url_encode
+
+      @last_response = response = agent.call(method, path, data, options)
       response.data
     end
 

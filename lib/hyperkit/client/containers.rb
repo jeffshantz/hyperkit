@@ -656,7 +656,49 @@ module Hyperkit
         put(container_path(container), { "restore": snapshot }).metadata
       end
 
+      # Read the contents of a file in a container
+      #
+      # @param container [String] Container name
+      # @param file [String] Full path to a file within the container
+      # @return [String] The contents of the file
+      #
+      # @example Read the file /etc/hostname in container "test"
+      #   Hyperkit.client.read_file("test", "/etc/hostname") #=> "test-container.example.com"
+      def read_file(container, file)
+        get(file_path(container, file), url_encode: false)
+      end
+
+      # Copy a file from a container to the local system.  The file will be
+      # written with the same permissions assigned to it in the container.
+      #
+      # @param container [String] Container name
+      # @param file [String] Full path to a file within the container
+      # @param dest_file [String] Full path of desired output file (will be created/overwritten)
+      # @return [String] Full path to the output file
+      #
+      # @example Copy /etc/passwd in container "test" to the local file /tmp/passwd
+      #   Hyperkit.client.pull_file("test", "/etc/passwd", "/tmp/passwd") #=> "/tmp/passwd"
+			def pull_file(container, file, dest_file)
+				contents = get(file_path(container, file), url_encode: false)
+				headers = last_response.headers
+
+				File.open(dest_file, "wb") do |f|
+					f.write(contents)
+				end
+
+				if headers["x-lxd-mode"]
+					File.chmod(headers["x-lxd-mode"].to_i(8), dest_file)
+				end
+
+				dest_file
+
+			end
+
       private
+
+      def file_path(container, file)
+        File.join(container_path(container), "files") + "?path=#{file}"
+      end
 
       def snapshot_path(container, snapshot)
         File.join(snapshots_path(container), snapshot)
