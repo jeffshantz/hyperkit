@@ -795,10 +795,24 @@ module Hyperkit
       # @example Get log "lxc.log" for container "test-container"
       #   Hyperkit.client.log("test-container", "lxc.log")
       def log(container, log)
-        get(File.join(logs_path(container), log))
+        get(log_path(container, log))
+      end
+
+      # Delete a container's log
+      #
+      # @param container [String] Container name
+      # @param log [String] Filename of log to delete
+      # @example Delete log "lxc.log" for container "test-container"
+      #   Hyperkit.client.delete_log("test-container", "lxc.log")
+      def delete_log(container, log)
+        delete(log_path(container, log))
       end
 
       private
+
+      def log_path(container, log)
+        File.join(logs_path(container), log)
+      end
 
       def logs_path(container)
         File.join(container_path(container), "logs")

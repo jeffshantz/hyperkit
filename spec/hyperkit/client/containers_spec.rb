@@ -2106,4 +2106,26 @@ describe Hyperkit::Client::Containers do
 
   end
 
+  describe ".delete_log", :vcr do
+
+    it "deletes the log", :container do
+      logs = client.logs("test-container")
+      expect(logs).to_not be_empty
+
+      log = logs.first
+
+      response = client.delete_log("test-container", log)
+      expect(client.logs("test-container")).to_not include(log)
+
+    end
+
+    it "makes the correct API call" do
+      request = stub_delete("/1.0/containers/test/logs/lxc.log").to_return(ok_response)
+      client.delete_log("test", "lxc.log")
+      assert_requested request
+    end
+
+  end
+
+
 end
