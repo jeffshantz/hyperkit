@@ -2088,4 +2088,22 @@ describe Hyperkit::Client::Containers do
 
   end
 
+  describe ".log", :vcr do
+
+    it "makes the correct API call" do
+      request = stub_get("/1.0/containers/test/logs/lxc.log").
+        to_return(ok_response)
+
+      client.log("test","lxc.log")
+      assert_requested request
+    end
+
+    it "retrieves a log", :container do
+      logs = client.logs("test-container")
+      log = client.log("test-container", logs.first)
+      expect(log).to include("INFO")
+    end
+
+  end
+
 end
