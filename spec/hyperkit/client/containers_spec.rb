@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'tempfile'
 require 'tmpdir'
 
 describe Hyperkit::Client::Containers do
@@ -1918,6 +1919,139 @@ describe Hyperkit::Client::Containers do
 
 		end
 	
+  end
+
+  shared_examples_for "a file writing method" do
+
+    it "accepts a uid", :container do
+
+      write_method.call("/tmp/test.txt", uid: 0)
+      write_method.call("/tmp/test2.txt", uid: 1000)
+
+      client.read_file("test-container", "/tmp/test.txt")
+      expect(client.last_response.headers["x-lxd-uid"]).to eq("0")
+
+      client.read_file("test-container", "/tmp/test2.txt")
+      expect(client.last_response.headers["x-lxd-uid"]).to eq("1000")
+
+    end
+
+    it "accepts a gid", :container do
+
+      write_method.call("/tmp/test.txt", gid: 0)
+      write_method.call("/tmp/test2.txt", gid: 1000)
+
+      client.read_file("test-container", "/tmp/test.txt")
+      expect(client.last_response.headers["x-lxd-gid"]).to eq("0")
+
+      client.read_file("test-container", "/tmp/test2.txt")
+      expect(client.last_response.headers["x-lxd-gid"]).to eq("1000")
+
+    end
+
+    it "accepts a mode", :container do
+
+      write_method.call("/tmp/test.txt", mode: 0427)
+      write_method.call("/tmp/test2.txt", mode: 0777)
+
+      client.read_file("test-container", "/tmp/test.txt")
+      expect(client.last_response.headers["x-lxd-mode"]).to eq("0427")
+
+      client.read_file("test-container", "/tmp/test2.txt")
+      expect(client.last_response.headers["x-lxd-mode"]).to eq("0777")
+
+    end
+
+  end
+
+  describe ".write_file", :vcr do
+
+    context "when given a block" do
+
+      it_behaves_like "a file writing method" do
+        let(:write_method) do
+          lambda do |filename, options|
+            client.write_file("test-container", filename, options) do |f|
+              f.puts "Testing"
+            end
+          end
+        end
+      end
+
+      it "yields a StringIO object", :container do
+
+        client.write_file("test-container", "/tmp/test.txt") do |f|
+          expect(f).to be_a(StringIO)
+        end
+
+      end
+
+      it "writes the contents of the IO object at the end of the block", :container do
+
+        client.write_file("test-container", "/tmp/test.txt") do |f|
+          f.print "Hello "
+          f.puts "world!"
+        end
+
+        expect(client.read_file("test-container", "/tmp/test.txt")).to eq("Hello world!\n")
+
+      end
+
+    end
+
+    context "when given no block" do
+
+      it_behaves_like "a file writing method" do
+        let(:write_method) do
+          lambda do |filename, options|
+            client.write_file("test-container", filename, options.merge(content: "test"))
+            client.write_file("test-container", filename, options.merge(content: "test"))
+          end
+        end
+      end
+
+      it "writes the contents of the 'content' option to the file", :container do
+        client.write_file("test-container", "/tmp/test.txt", content: "this is a test")
+        expect(client.read_file("test-container", "/tmp/test.txt")).to eq("this is a test")
+      end
+
+      context "and no content option is passed" do
+
+        it "creates an empty file", :container do
+          client.write_file("test-container", "/tmp/test.txt", uid: 1000)
+          expect(client.read_file("test-container", "/tmp/test.txt")).to eq("")
+          expect(client.last_response.headers["x-lxd-uid"]).to eq("1000")
+        end
+
+      end
+
+    end
+
+  end
+
+  describe ".push_file", :vcr do
+
+		it_behaves_like "a file writing method" do
+			let(:write_method) do
+        lambda do |path, options|
+          file = Tempfile.new("hyperkit-push_file")
+          file.write("hello world")
+          file.close
+          client.push_file(file.path, "test-container", path, options)
+        end
+      end
+		end
+
+    it "copies the local file to the container", :container do
+      file = Tempfile.new("hyperkit-push_file")
+      file.puts("hello world")
+      file.print("testing!")
+      file.close
+
+      client.push_file(file.path, "test-container", "/tmp/push.txt")
+      expect(client.read_file("test-container", "/tmp/push.txt")).to eq("hello world\ntesting!")
+    end
+
   end
 
 end
