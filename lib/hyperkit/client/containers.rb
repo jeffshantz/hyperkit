@@ -783,13 +783,24 @@ module Hyperkit
       # @example Get list of logs for container "test-container"
       #   Hyperkit.client.logs("test-container")
       def logs(container)
-        response = get(log_path(container))
-        response.metadata.map { |path| path.sub(log_path(container) + '/', '') }
+        response = get(logs_path(container))
+        response.metadata.map { |path| path.sub(logs_path(container) + '/', '') }
+      end
+
+      # Retrieve the contents of a log for a container
+      #
+      # @param container [String] Container name
+      # @param log [String] Log filename
+      # @return [String] The contents of the log
+      # @example Get log "lxc.log" for container "test-container"
+      #   Hyperkit.client.log("test-container", "lxc.log")
+      def log(container, log)
+        get(File.join(logs_path(container), log))
       end
 
       private
 
-      def log_path(container)
+      def logs_path(container)
         File.join(container_path(container), "logs")
       end
       def file_path(container, file)
