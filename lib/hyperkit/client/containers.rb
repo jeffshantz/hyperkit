@@ -1,3 +1,5 @@
+require 'active_support/core_ext/array/extract_options'
+
 module Hyperkit
 
   class Client
@@ -672,14 +674,14 @@ module Hyperkit
       # written with the same permissions assigned to it in the container.
       #
       # @param container [String] Container name
-      # @param file [String] Full path to a file within the container
+      # @param source_file [String] Full path to a file within the container
       # @param dest_file [String] Full path of desired output file (will be created/overwritten)
       # @return [String] Full path to the output file
       #
       # @example Copy /etc/passwd in container "test" to the local file /tmp/passwd
       #   Hyperkit.client.pull_file("test", "/etc/passwd", "/tmp/passwd") #=> "/tmp/passwd"
-			def pull_file(container, file, dest_file)
-				contents = get(file_path(container, file), url_encode: false)
+			def pull_file(container, source_file, dest_file)
+				contents = get(file_path(container, source_file), url_encode: false)
 				headers = last_response.headers
 
 				File.open(dest_file, "wb") do |f|
@@ -693,6 +695,86 @@ module Hyperkit
 				dest_file
 
 			end
+
+      # Write to a file in a container
+      #
+      # @param container [String] Container name
+      # @param dest_file [String] Path to the output file in the container
+      # @param options [Hash] Additional data to be passed
+      # @option options [Fixnum] :uid Owner to assign to the file
+      # @option options [Fixnum] :gid Group to assign to the file
+      # @option options [Fixnum] :mode File permissions (in octal) to assign to the file
+      # @option options [Fixnum] :content Content to write to the file (if no block given)
+      # @yieldparam name [StringIO] IO to be used to write to the file from a block
+      #
+      # @example Write string "hello" to /tmp/test.txt in container test-container
+      #   Hyperkit.client.write_file("test-container", "/tmp/test.txt", content: "hello")
+      #
+      # @example Write to file using a block
+      #   Hyperkit.client.write_file("test-container", "/tmp/test.txt") do |f|
+      #     f.print "Hello "
+      #     f.puts "world"
+      #   end
+      #
+      # @example Assign uid, gid, and mode to a file:
+      #   Hyperkit.client.write_file("test-container",
+      #     "/tmp/test.txt",
+      #     content: "hello",
+      #     uid: 1000,
+      #     gid: 1000,
+      #     mode: 0644
+      #   )
+      def write_file(container, dest_file, options={}, &block)
+
+        headers = { "Content-Type" => "application/octet-stream" }
+        headers["X-LXD-uid"] = options[:uid].to_s if options[:uid]
+        headers["X-LXD-gid"] = options[:gid].to_s if options[:gid]
+        headers["X-LXD-mode"] = options[:mode].to_s(8).rjust(4, "0") if options[:mode]
+
+				if ! block_given?
+					content = options[:content].to_s
+				else
+					io = StringIO.new
+					yield io
+					io.rewind
+					content = io.read
+				end
+
+        post(file_path(container, dest_file), {
+          raw_body: content,
+          headers: headers
+        })
+
+      end
+
+      # Copy a file from the local system to container
+      #
+      # @param container [String] Container name
+      # @param source_file [String] Full path to a file within the container
+      # @param dest_file [String] Full path of desired output file (will be created/overwritten)
+      # @param options [Hash] Additional data to be passed
+      # @option options [Fixnum] :uid Owner to assign to the file
+      # @option options [Fixnum] :gid Group to assign to the file
+      # @option options [Fixnum] :mode File permissions (in octal) to assign to the file
+      #
+      # @example Copy /tmp/test.txt from the local system to /etc/passwd in the container
+      #   Hyperkit.client.push_file("/tmp/test.txt", "test-container", "/etc/passwd")
+      #
+      # @example Assign uid, gid, and mode to a file:
+      #   Hyperkit.client.push_file("/tmp/test.txt",
+      #     "test-container",
+      #     "/etc/passwd",
+      #     uid: 1000,
+      #     gid: 1000,
+      #     mode: 0644
+      #   )
+      def push_file(source_file, container, dest_file, options={})
+
+        write_file(container, dest_file, options) do |f|
+          f.write File.read(source_file)
+        end
+
+      end
 
       private
 
