@@ -120,6 +120,11 @@ Currently, we support:
   * `GET /1.0/containers/<name>/snapshots/<name>`
   * `POST /1.0/containers/<name>/snapshots/<name>`
   * `DELETE /1.0/containers/<name>/snapshots/<name>`
+  * `GET /1.0/containers/<name>/files`
+  * `POST /1.0/containers/<name>/files`
+  * `GET /1.0/containers/<name>/logs`
+  * `GET /1.0/containers/<name>/logs/<logfile>`
+  * `DELETE /1.0/containers/<name>/logs/<logfile>`
 * `/1.0/images`
 * `/1.0/networks`
 * `/1.0/operations` (except `/1.0/operations/<uuid>/websocket`)
