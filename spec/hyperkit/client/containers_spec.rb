@@ -1765,6 +1765,9 @@ describe Hyperkit::Client::Containers do
       response = client.update_container("test-container", container)
       client.wait_for_operation(response.id)
 
+      client.write_file("test-container", "/tmp/test.txt", content: "test")
+      expect { client.read_file("test-container", "/tmp/test.txt") }.to_not raise_error
+
       container_before = client.container("test-container")
 
       response = client.restore_snapshot("test-container", "test-snapshot")
@@ -1777,6 +1780,7 @@ describe Hyperkit::Client::Containers do
 
       expect(container_before.config["limits.memory"]).to eq("256MB")
       expect(container_after.config["limits.memory"]).to be_nil
+      expect { client.read_file("test-container", "/tmp/test.txt") }.to raise_error
 
     end
 
@@ -2123,6 +2127,68 @@ describe Hyperkit::Client::Containers do
       request = stub_delete("/1.0/containers/test/logs/lxc.log").to_return(ok_response)
       client.delete_log("test", "lxc.log")
       assert_requested request
+    end
+
+  end
+
+  describe ".execute_command", :vcr do
+
+    it "runs the specified command in the container", :container, :running do
+      expect { client.read_file("test-container", "/tmp/test.txt") }.to raise_error
+
+      response = client.execute_command("test-container", ["/bin/sh","-c","echo 'hello world' | tee /tmp/test.txt"])
+      res = client.wait_for_operation(response.id)
+
+      expect(client.read_file("test-container", "/tmp/test.txt")).to eq("hello world\n")
+    end
+
+    it "accepts environment variables", :container, :running do
+      expect { client.read_file("test-container", "/tmp/test.txt") }.to raise_error
+
+      response = client.execute_command("test-container",
+        "/bin/sh -c 'echo \"$MYVAR\" $MYVAR2 > /tmp/test.txt'",
+        environment: {
+          MYVAR: "environment  test",
+          MYVAR2: 42
+        }
+      )
+      res = client.wait_for_operation(response.id)
+      expect(client.read_file("test-container", "/tmp/test.txt")).to eq("environment  test 42\n")
+    end
+
+    context "when the command is given as an array" do
+
+      it "makes the correct API call" do
+        request = stub_post("/1.0/containers/test/exec").
+          with(body: hash_including({
+            command: ["bash", "-c", "echo \"hello world\" | tee -a /tmp/test.txt"]
+          })).
+          to_return(ok_response)
+
+        client.execute_command("test", "bash -c 'echo \"hello world\" | tee -a /tmp/test.txt'")
+        assert_requested request
+      end
+
+    end
+
+    context "when the command is given as a string" do
+
+      it "makes the correct API call" do
+        request = stub_post("/1.0/containers/test/exec").
+          with(body: hash_including({
+            command: ["bash", "-c", "echo \"hello world\" | tee -a /tmp/test.txt"]
+          })).
+          to_return(ok_response)
+
+        client.execute_command("test", ["bash", "-c", "echo \"hello world\" | tee -a /tmp/test.txt"])
+        assert_requested request
+      end
+
+    end
+
+    it "raises an error if the container is not running", :container do
+      call = lambda { client.execute_command("test-container", "echo hello") }
+      expect(call).to raise_error(Hyperkit::BadRequest)
     end
 
   end

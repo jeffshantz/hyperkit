@@ -658,6 +658,8 @@ module Hyperkit
         put(container_path(container), { "restore": snapshot }).metadata
       end
 
+      alias_method :revert_to_snapshot, :restore_snapshot
+
       # Read the contents of a file in a container
       #
       # @param container [String] Container name
@@ -808,6 +810,27 @@ module Hyperkit
         delete(log_path(container, log))
       end
 
+      def execute_command(container, command, options={})
+
+        opts = options.slice(:environment)
+        command = Shellwords.shellsplit(command) if command.is_a?(String)
+
+        # Stringify any environment values since LXD croaks on non-String values
+        if opts[:environment]
+          opts[:environment] = opts[:environment].inject({}){|h,(k,v)| h[k.to_s] = v.to_s; h}
+        end
+
+        post(File.join(container_path(container), "exec"), {
+          command: command,
+          environment: opts[:environment] || {},
+          "wait-for-websocket" => false,
+          interactive: false
+        }).metadata
+
+      end
+
+      alias_method :run_command, :execute_command
+
       private
 
       def log_path(container, log)
@@ -817,6 +840,7 @@ module Hyperkit
       def logs_path(container)
         File.join(container_path(container), "logs")
       end
+
       def file_path(container, file)
         File.join(container_path(container), "files") + "?path=#{file}"
       end
