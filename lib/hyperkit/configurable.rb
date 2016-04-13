@@ -27,6 +27,8 @@ module Hyperkit
 
     # @!attribute api_endpoint
     #   @return [String] Base URL for API requests. default: https://localhost:8443/
+    # @!attribute auto_sync
+    #   @return [String] Whether to automatically wait on asynchronous events. default: true
     # @!attribute client_cert
     #   @return [String] Client certificate for authentication
     # @!attribute client_key 
@@ -44,8 +46,8 @@ module Hyperkit
     # @!attribute verify_ssl
     #   @return [Boolean] Whether or not to verify peer SSL certificate
 
-    attr_accessor :client_cert, :client_key, :default_media_type, :middleware,
-                  :proxy, :user_agent, :verify_ssl
+    attr_accessor :auto_sync, :client_cert, :client_key, :default_media_type,
+                  :middleware, :proxy, :user_agent, :verify_ssl
     attr_writer :api_endpoint
 
     class << self
@@ -55,6 +57,7 @@ module Hyperkit
       def keys
         @keys ||= [
           :api_endpoint,
+          :auto_sync,
           :client_cert,
           :client_key,
           :default_media_type,

@@ -36,6 +36,8 @@ VCR.configure do |c|
   c.allow_http_connections_when_no_cassette = true
 end
 
+Dir["./spec/support/**/*.rb"].sort.each { |f| require f}
+
 RSpec.configure do |config|
 
 	config.filter_run :focus => true
@@ -82,6 +84,24 @@ RSpec.configure do |config|
     end
   end
 
+  config.before(:each, remote_image: true) do |example|
+
+		options = {
+			public: true
+		}
+
+		if example.metadata.has_key?(:remote_image_options)
+			options = options.merge(:remote_image_options)
+		end
+
+    create_remote_test_image(options)
+  end
+
+  config.after(:each, remote_image: true) do |example|
+    delete_remote_test_image
+  end
+
+
   config.before(:each, container: true) do |example|
     if example.metadata[:skip_create]
       @test_container_name = "test-container"
@@ -89,19 +109,16 @@ RSpec.configure do |config|
 		  @test_container_name = create_test_container
 
       if example.metadata[:running] || example.metadata[:frozen]
-        response = client.start_container(@test_container_name)
-        client.wait_for_operation(response.id)
+        client.start_container(@test_container_name, sync: true)
       end
 
       if example.metadata[:frozen]
-        response = client.freeze_container(@test_container_name)
-        client.wait_for_operation(response.id)
+        client.freeze_container(@test_container_name, sync: true)
       end
 
 
       if example.metadata[:snapshot]
-        response = client.create_snapshot(@test_container_name, "test-snapshot")
-        client.wait_for_operation(response.id)
+        client.create_snapshot(@test_container_name, "test-snapshot", sync: true)
       end
 
     end
@@ -115,7 +132,7 @@ RSpec.configure do |config|
       container = client.container(@test_container_name)
 
       if container.status != "Stopped"
-        client.stop_container(@test_container_name, force: true)
+        client.stop_container(@test_container_name, force: true, sync: true)
       end
 
 	   delete_test_container(@test_container_name, image: example.metadata[:delete_image])
@@ -202,9 +219,7 @@ def create_test_container(name="test-container", extra_opts={})
     opts[:alias] = "cirros"
   end
 
-  response = client.create_container(name, opts)
-  client.wait_for_operation(response.id)
-
+  client.create_container(name, opts.merge(sync: true))
   name
 end
 
@@ -213,12 +228,10 @@ def delete_test_container(name="test-container", opts={})
   container = client.container(name)
 
   if container.status != "Stopped"
-    response = client.stop_container(name, force: true)
-    client.wait_for_operation(response.id)
+    client.stop_container(name, force: true, sync: true)
   end
 
-  response = client.delete_container(name)
-  client.wait_for_operation(response.id)
+  client.delete_container(name, sync: true)
 
   if opts[:image] && container.config["volatile.base_image"]
     delete_test_image(container.config["volatile.base_image"])
@@ -229,8 +242,7 @@ end
 def create_test_image(alias_name=nil, options={})
   fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
   
-  response = client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"), options)
-  client.wait_for_operation(response[:id])
+  client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"), options.merge(sync: true))
   
   if alias_name
     client.create_image_alias(fingerprint, alias_name)
@@ -240,8 +252,19 @@ def create_test_image(alias_name=nil, options={})
 end
 
 def delete_test_image(fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz"))
-  response = client.delete_image(fingerprint)
-  client.wait_for_operation(response[:id])
+  client.delete_image(fingerprint, sync: true)
+end
+
+def create_remote_test_image(options={})
+  @remote_cert = lxd2.get("/1.0").metadata.environment.certificate
+  @remote_fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
+  lxd2.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"), options.merge(sync: true))
+  lxd2.create_image_alias(@remote_fingerprint, "busybox/default")
+  @remote_fingerprint
+end
+
+def delete_remote_test_image
+  lxd2.delete_image(@remote_fingerprint, sync: true)
 end
 
 def test_migration_source_data
