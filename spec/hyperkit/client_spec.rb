@@ -25,7 +25,8 @@ describe Hyperkit::Client do
       before do
         @opts = {
           :client_cert => '/tmp/cert',
-          :client_key => '/tmp/key'
+          :client_key => '/tmp/key',
+          :auto_sync => false
         }
       end
 
@@ -33,6 +34,7 @@ describe Hyperkit::Client do
         client = Hyperkit::Client.new(@opts)
         expect(client.client_cert).to eq('/tmp/cert')
         expect(client.client_key).to eq('/tmp/key')
+        expect(client.auto_sync).to eq(false)
       end
 
       it "can set configuration after initialization" do
@@ -44,14 +46,8 @@ describe Hyperkit::Client do
         end
         expect(client.client_cert).to eq('/tmp/cert')
         expect(client.client_key).to eq('/tmp/key')
+        expect(client.auto_sync).to eq(false)
       end
-
-      #TODO: Uncomment when trust passwords supported
-      #it "masks passwords on inspect" do
-      #  client = Hyperkit::Client.new(@opts)
-      #  inspected = client.inspect
-      #  expect(inspected).not_to include("il0veruby")
-      #end
 
     end
 
@@ -66,6 +62,48 @@ describe Hyperkit::Client do
       Hyperkit.client.post "/1.0/profiles", {}
       assert_requested profile_request
     end
+  end
+
+  describe "auto_sync" do
+
+    before(:each) do
+      @client = Hyperkit.client
+      Hyperkit.reset!
+      expect(Hyperkit.auto_sync).to eq(true)
+      expect(Hyperkit.client.auto_sync).to eq(true)
+    end
+
+    describe "with module level config" do
+
+      it "configures auto-synchronization with .configure" do
+        Hyperkit.configure do |config|
+          config.auto_sync = false
+        end
+        expect(Hyperkit.client.auto_sync).to eq(false)
+      end
+
+      it "configures auto-synchronization with module methods" do
+        Hyperkit.auto_sync = false
+        expect(Hyperkit.client.auto_sync).to eq(false)
+      end
+    end
+
+    describe "with class level config" do
+
+      it "configures auto-synchronization with .configure" do
+        @client.configure do |config|
+          config.auto_sync = false
+        end
+        expect(@client.auto_sync).to eq(false)
+      end
+
+      it "configures auto-synchronization with instance methods" do
+        @client.auto_sync = false
+        expect(@client.auto_sync).to eq(false)
+      end
+
+    end
+
   end
 
   describe "authentication" do

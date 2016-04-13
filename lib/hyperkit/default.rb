@@ -31,6 +31,9 @@ module Hyperkit
     # Default API endpoint
     API_ENDPOINT = "https://localhost:8443".freeze
 
+    # Default auto-sync value
+    AUTO_SYNC = true
+
     # Default client certificate file for authentication
     CLIENT_CERT = File.join(ENV['HOME'], '.config', 'lxc', 'client.crt').freeze
 
@@ -86,6 +89,11 @@ module Hyperkit
       # @return [String]
       def api_endpoint
         ENV['HYPERKIT_API_ENDPOINT'] || API_ENDPOINT
+      end
+
+      # Default auto-sync value from ENV or {AUTO_SYNC}
+      def auto_sync
+        ENV['HYPERKIT_AUTO_SYNC'] || AUTO_SYNC
       end
 
       # Default client certificate file from ENV or {CLIENT_CERT}

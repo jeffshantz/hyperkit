@@ -33,6 +33,20 @@ module Hyperkit
         response[:metadata]
       end
 
+      private
+
+      def handle_async(response, sync)
+
+        sync = sync.nil? ? auto_sync : sync
+
+        if sync 
+          wait_for_operation(response.id)
+        else
+          response
+        end
+
+      end
+
       def operation_path(uuid)
         File.join(operations_path, uuid)
       end

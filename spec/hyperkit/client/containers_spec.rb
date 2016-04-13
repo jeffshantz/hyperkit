@@ -46,7 +46,6 @@ describe Hyperkit::Client::Containers do
 
     it "makes the correct API call" do
       request = stub_get("/1.0/containers/test").to_return(ok_response)
-
       client.container("test")
       assert_requested request
     end
@@ -62,7 +61,6 @@ describe Hyperkit::Client::Containers do
 
     it "makes the correct API call" do
       request = stub_get("/1.0/containers/test/state").to_return(ok_response)
-
       client.container_state("test")
       assert_requested request
     end
@@ -71,10 +69,18 @@ describe Hyperkit::Client::Containers do
 
   describe ".create_container", :vcr, :skip_create do
 
-    it "creates a container in the 'Stopped' state", :container do
-      response = client.create_container("test-container", alias: "cirros")
-      client.wait_for_operation(response.id)
+    it_behaves_like "an asynchronous operation" do
 
+      after { delete_test_container }
+
+      let(:operation) do
+        lambda { |options| client.create_container("test-container", { alias: "cirros" }.merge(options)) }
+      end
+
+    end
+
+    it "creates a container in the 'Stopped' state", :container do
+      client.create_container("test-container", alias: "cirros")
       container = client.container("test-container")
       expect(container.status).to eq("Stopped")
     end
@@ -87,7 +93,7 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response)
 
-      client.create_container("test-container", alias: "busybox")
+      client.create_container("test-container", alias: "busybox", sync: false)
       assert_requested request
     end
 
@@ -104,7 +110,8 @@ describe Hyperkit::Client::Containers do
 
         client.create_container("test-container",
           alias: "busybox",
-          architecture: "x86_64")
+          architecture: "x86_64",
+          sync: false)
 
         assert_requested request
       end
@@ -124,7 +131,8 @@ describe Hyperkit::Client::Containers do
 
         client.create_container("test-container",
           alias: "busybox",
-          profiles: ['test1', 'test2'])
+          profiles: ['test1', 'test2'],
+          sync: false)
 
         assert_requested request
       end
@@ -155,14 +163,14 @@ describe Hyperkit::Client::Containers do
 
         client.create_container("test-container",
           alias: "busybox",
-          ephemeral: true)
+          ephemeral: true,
+          sync: false)
 
         assert_requested request
       end
 
       it "makes the container ephemeral", :container do
         create_test_container("test-container", ephemeral: true, empty: true)
-
         container = client.container("test-container")
         expect(container).to be_ephemeral
       end
@@ -173,7 +181,6 @@ describe Hyperkit::Client::Containers do
 
       it "defaults to a persistent container", :container do
         create_test_container("test-container", empty: true)
-
         container = client.container("test-container")
         expect(container).to_not be_ephemeral
       end
@@ -193,7 +200,8 @@ describe Hyperkit::Client::Containers do
 
         client.create_container("test-container",
           alias: "busybox",
-          config: { hello: "world" })
+          config: { hello: "world" },
+          sync: false)
 
         assert_requested request
       end
@@ -230,7 +238,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.create_container("test-container", alias: "busybox")
+        client.create_container("test-container", alias: "busybox", sync: false)
         assert_requested request
       end
 
@@ -255,15 +263,15 @@ describe Hyperkit::Client::Containers do
           to_return(ok_response)
 
         client.create_container("test-container",
-          fingerprint: "test-fingerprint")
+          fingerprint: "test-fingerprint",
+          sync: false)
 
         assert_requested request
       end
 
       it "creates a container by image fingerprint", :container do
         fingerprint = client.image_by_alias("cirros").fingerprint
-        response = client.create_container("test-container", fingerprint: fingerprint)
-        client.wait_for_operation(response.id)
+        client.create_container("test-container", fingerprint: fingerprint)
 
         container = client.container("test-container")
         expect(container.config["volatile.base_image"]).to eq(fingerprint)
@@ -281,16 +289,15 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.create_container("test-container", empty: true)
+        client.create_container("test-container", empty: true, sync: false)
         assert_requested request
       end
 
       it "creates an empty container", :container do
-        response = client.create_container("test-container",
+        client.create_container("test-container",
           empty: true,
           config: { "volatile.eth0.hwaddr" => "aa:bb:cc:dd:ee:ff" }
         )
-        client.wait_for_operation(response.id)
 
         container = client.container("test-container")
         expect(container.config["volatile.base_image"]).to be_nil
@@ -331,15 +338,15 @@ describe Hyperkit::Client::Containers do
           to_return(ok_response)
 
         client.create_container("test-container",
-          properties: { os: "busybox" })
+          properties: { os: "busybox" },
+          sync: false)
 
         assert_requested request
       end
 
       it "creates a container by image properties", :container do
-        response = client.create_container("test-container",
+        client.create_container("test-container",
           properties: { os: "Cirros", architecture: "x86_64" })
-        client.wait_for_operation(response.id)
 
         container = client.container("test-container")
         fingerprint = client.image_by_alias("cirros").fingerprint
@@ -369,7 +376,8 @@ describe Hyperkit::Client::Containers do
 
         client.create_container("test-container",
           alias: "test-alias",
-          fingerprint: "test-fingerprint")
+          fingerprint: "test-fingerprint",
+          sync: false)
 
         assert_requested request
       end
@@ -388,7 +396,8 @@ describe Hyperkit::Client::Containers do
 
         client.create_container("test-container",
           fingerprint: "test-fingerprint",
-          properties: { hello: "world" })
+          properties: { hello: "world" },
+          sync: false)
 
         assert_requested request
       end
@@ -407,7 +416,8 @@ describe Hyperkit::Client::Containers do
 
         client.create_container("test-container",
           alias: "test-alias",
-          properties: { hello: "world" })
+          properties: { hello: "world" },
+          sync: false)
 
         assert_requested request
       end
@@ -424,7 +434,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.create_container("test-container", alias: "test-alias")
+        client.create_container("test-container", alias: "test-alias", sync: false)
         assert_requested request
       end
 
@@ -466,7 +476,8 @@ describe Hyperkit::Client::Containers do
 
         client.create_container("test-container",
           alias: "test-alias",
-          server: "test-server")
+          server: "test-server",
+          sync: false)
 
         assert_requested request
       end
@@ -474,10 +485,9 @@ describe Hyperkit::Client::Containers do
       it "creates the container from a remote image", :container, :delete_image do
         image_alias = remote_lxd.image_alias("ubuntu/xenial/amd64")
 
-        response = client.create_container("test-container",
+        client.create_container("test-container",
           server: "https://images.linuxcontainers.org:8443",
           alias: "ubuntu/xenial/amd64")
-        client.wait_for_operation(response.id)
 
         container = client.container("test-container")
         expect(container.config["volatile.base_image"]).to eq(image_alias.target)
@@ -499,7 +509,8 @@ describe Hyperkit::Client::Containers do
           client.create_container("test-container",
             server: "https://images.linuxcontainers.org:8443",
             alias: "ubuntu/xenial/amd64",
-            protocol: "lxd")
+            protocol: "lxd",
+            sync: false)
 
           assert_requested request
         end
@@ -518,7 +529,8 @@ describe Hyperkit::Client::Containers do
           client.create_container("test-container",
             server: "https://images.linuxcontainers.org:8443",
             alias: "ubuntu/xenial/amd64",
-            protocol: "simplestreams")
+            protocol: "simplestreams",
+            sync: false) 
 
           assert_requested request
         end
@@ -553,7 +565,8 @@ describe Hyperkit::Client::Containers do
           client.create_container("test-container",
             server: "https://images.linuxcontainers.org:8443",
             alias: "ubuntu/xenial/amd64",
-            secret: "reallysecret")
+            secret: "reallysecret",
+            sync: false)
 
           assert_requested request
         end
@@ -576,7 +589,8 @@ describe Hyperkit::Client::Containers do
           client.create_container("test-container",
             server: "https://images.linuxcontainers.org:8443",
             alias: "ubuntu/xenial/amd64",
-            certificate: test_cert)
+            certificate: test_cert,
+            sync: false)
 
           assert_requested request
         end
@@ -589,12 +603,25 @@ describe Hyperkit::Client::Containers do
 
   describe ".start_container", :vcr do
 
+    it_behaves_like "an asynchronous operation" do
+
+      before { create_test_container }
+      after { delete_test_container }
+
+      let(:operation) do
+        lambda do |options| 
+          client.start_container("test-container", options)
+        end
+
+      end
+
+    end
+
     it "starts a stopped container", :container do
       state = client.container_state("test-container")
       expect(state.status).to eq("Stopped")
 
-      response = client.start_container("test-container")
-      client.wait_for_operation(response.id)
+      client.start_container("test-container")
 
       state = client.container_state("test-container")
       expect(state.status).to eq("Running")
@@ -608,7 +635,7 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response)
 
-      client.start_container("test", timeout: 30)
+      client.start_container("test", timeout: 30, sync: false)
       assert_requested request
     end
 
@@ -620,7 +647,7 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response)
 
-      client.start_container("test", stateful: true)
+      client.start_container("test", stateful: true, sync: false)
       assert_requested request
     end
 
@@ -628,12 +655,29 @@ describe Hyperkit::Client::Containers do
 
   describe ".stop_container", :vcr do
 
+    it_behaves_like "an asynchronous operation" do
+
+      before do
+        create_test_container
+        client.start_container("test-container", sync: true)
+      end
+
+      after { delete_test_container }
+
+      let(:operation) do
+        lambda do |options| 
+          client.stop_container("test-container", {force: true}.merge(options))
+        end
+
+      end
+
+    end
+
     it "stops a running container", :container, :running do
       state = client.container_state("test-container")
       expect(state.status).to eq("Running")
 
-      response = client.stop_container("test-container", force: true)
-      client.wait_for_operation(response.id)
+      client.stop_container("test-container", force: true)
 
       state = client.container_state("test-container")
       expect(state.status).to eq("Stopped")
@@ -643,8 +687,8 @@ describe Hyperkit::Client::Containers do
       state = client.container_state("test-container")
       expect(state.status).to eq("Stopped")
 
-      response = client.stop_container("test-container")
-      expect { client.wait_for_operation(response.id) }.to raise_error(Hyperkit::BadRequest)
+      call = lambda { client.stop_container("test-container") }
+      expect(call).to raise_error(Hyperkit::BadRequest)
     end
 
     it "accepts a timeout" do
@@ -655,7 +699,7 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response)
 
-      client.stop_container("test", timeout: 30)
+      client.stop_container("test", timeout: 30, sync: false)
       assert_requested request
     end
 
@@ -667,7 +711,7 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response)
 
-      client.stop_container("test", force: true)
+      client.stop_container("test", force: true, sync: false)
       assert_requested request
     end
 
@@ -679,7 +723,7 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response)
 
-      client.stop_container("test", stateful: true)
+      client.stop_container("test", stateful: true, sync: false)
       assert_requested request
     end
 
@@ -687,13 +731,30 @@ describe Hyperkit::Client::Containers do
 
   describe ".restart_container", :vcr do
 
+    it_behaves_like "an asynchronous operation" do
+
+      before do
+        create_test_container
+        client.start_container("test-container", sync: true)
+      end
+
+      after { delete_test_container }
+
+      let(:operation) do
+        lambda do |options| 
+          client.restart_container("test-container", {force: true}.merge(options))
+        end
+
+      end
+
+    end
+
     it "restarts a running container", :container, :running do
       state = client.container_state("test-container")
       expect(state.status).to eq("Running")
       pid_before = state.pid
 
-      response = client.restart_container("test-container", force: true)
-      client.wait_for_operation(response.id)
+      client.restart_container("test-container", force: true)
 
       state = client.container_state("test-container")
       expect(state.status).to eq("Running")
@@ -706,8 +767,8 @@ describe Hyperkit::Client::Containers do
       state = client.container_state("test-container")
       expect(state.status).to eq("Stopped")
 
-      response = client.restart_container("test-container")
-      expect { client.wait_for_operation(response.id) }.to raise_error(Hyperkit::BadRequest)
+      call = lambda { client.restart_container("test-container") }
+      expect(call).to raise_error(Hyperkit::BadRequest)
     end
 
     it "allows the operation to be forced" do
@@ -718,7 +779,7 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response)
 
-      client.restart_container("test", force: true)
+      client.restart_container("test", force: true, sync: false)
       assert_requested request
     end
 
@@ -730,7 +791,7 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response)
 
-      client.restart_container("test", timeout: 30)
+      client.restart_container("test", timeout: 30, sync: false)
       assert_requested request
     end
 
@@ -738,12 +799,29 @@ describe Hyperkit::Client::Containers do
 
   describe ".freeze_container", :vcr do
 
+    it_behaves_like "an asynchronous operation" do
+
+      before do
+        create_test_container
+        client.start_container("test-container", sync: true)
+      end
+
+      after { delete_test_container }
+
+      let(:operation) do
+        lambda do |options| 
+          client.freeze_container("test-container", {force: true}.merge(options))
+        end
+
+      end
+
+    end
+
     it "suspends a running container", :container, :running do
       state = client.container_state("test-container")
       expect(state.status).to eq("Running")
 
-      response = client.freeze_container("test-container")
-      client.wait_for_operation(response.id)
+      client.freeze_container("test-container")
 
       state = client.container_state("test-container")
       expect(state.status).to eq("Frozen")
@@ -753,8 +831,8 @@ describe Hyperkit::Client::Containers do
       state = client.container_state("test-container")
       expect(state.status).to eq("Stopped")
 
-      response = client.freeze_container("test-container")
-      expect { client.wait_for_operation(response.id) }.to raise_error(Hyperkit::BadRequest)
+      call = lambda { client.freeze_container("test-container") }
+      expect(call).to raise_error(Hyperkit::BadRequest)
     end
 
     it "accepts a timeout" do
@@ -765,7 +843,7 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response)
 
-      client.freeze_container("test", timeout: 30)
+      client.freeze_container("test", timeout: 30, sync: false)
       assert_requested request
     end
 
@@ -773,12 +851,30 @@ describe Hyperkit::Client::Containers do
 
   describe ".unfreeze_container", :vcr do
 
+    it_behaves_like "an asynchronous operation" do
+
+      before do
+        create_test_container
+        client.start_container("test-container", sync: true)
+        client.freeze_container("test-container", sync: true)
+      end
+
+      after { delete_test_container }
+
+      let(:operation) do
+        lambda do |options| 
+          client.unfreeze_container("test-container", {force: true}.merge(options))
+        end
+
+      end
+
+    end
+
     it "resumes a frozen container", :container, :frozen do
       state = client.container_state("test-container")
       expect(state.status).to eq("Frozen")
 
-      response = client.unfreeze_container("test-container")
-      client.wait_for_operation(response.id)
+      client.unfreeze_container("test-container")
 
       state = client.container_state("test-container")
       expect(state.status).to eq("Running")
@@ -788,8 +884,8 @@ describe Hyperkit::Client::Containers do
       state = client.container_state("test-container")
       expect(state.status).to eq("Running")
 
-      response = client.unfreeze_container("test-container")
-      expect { client.wait_for_operation(response.id) }.to raise_error(Hyperkit::BadRequest)
+      call = lambda { client.unfreeze_container("test-container") }
+      expect(call).to raise_error(Hyperkit::BadRequest)
     end
 
     it "accepts a timeout" do
@@ -800,13 +896,28 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response)
 
-      client.unfreeze_container("test", timeout: 30)
+      client.unfreeze_container("test", timeout: 30, sync: false)
       assert_requested request
     end
 
   end
 
   describe ".update_container", :vcr do
+
+    it_behaves_like "an asynchronous operation" do
+
+      after { delete_test_container }
+
+      let(:operation) do
+        lambda do |options| 
+          client.create_container("test-container", alias: "cirros", sync: true)
+          container = client.container("test-container")
+          client.update_container("test-container", container, options)
+        end
+
+      end
+
+    end
 
     it "updates the configuration of a container", :container, :running do
       container = client.container("test-container")
@@ -817,8 +928,7 @@ describe Hyperkit::Client::Containers do
       container.architecture = "i686"
       container.devices.eth1 = {nictype: "bridged", parent: "lxcbr0", type: "nic"}
 
-      response = client.update_container("test-container", container)
-      client.wait_for_operation(response.id)
+      client.update_container("test-container", container)
 
       container = client.container("test-container")
       expect(container.architecture).to eq("i686")
@@ -833,8 +943,7 @@ describe Hyperkit::Client::Containers do
       container = client.container("test-container").to_hash
       container.merge!(config: container[:config].merge("limits.cpu" => 2))
 
-      response = client.update_container("test-container", container)
-      client.wait_for_operation(response.id)
+      client.update_container("test-container", container)
 
       container = client.container("test-container")
       expect(container.config["limits.cpu"]).to eq("2")
@@ -847,7 +956,7 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response)
 
-      client.update_container("test", {"hello": "world"})
+      client.update_container("test", {"hello": "world"}, sync: false)
       assert_requested request
     end
 
@@ -855,12 +964,22 @@ describe Hyperkit::Client::Containers do
 
   describe ".delete_container", :vcr, :skip_delete do
 
+    it_behaves_like "an asynchronous operation" do
+
+      before { create_test_container }
+
+      let(:operation) do
+        lambda do |options| 
+          client.delete_container("test-container", options)
+        end
+
+      end
+
+    end
+
     it "deletes the container", :container do
       expect(client.containers).to include("test-container")
-
-      response = client.delete_container("test-container")
-      client.wait_for_operation(response.id)
-
+      client.delete_container("test-container")
       expect(client.containers).to_not include("test-container")
     end
 
@@ -871,7 +990,7 @@ describe Hyperkit::Client::Containers do
 
     it "makes the correct API call" do
       request = stub_delete("/1.0/containers/test").to_return(ok_response)
-      client.delete_container("test")
+      client.delete_container("test", sync: false)
       assert_requested request
     end
 
@@ -879,22 +998,34 @@ describe Hyperkit::Client::Containers do
 
   describe ".rename_container", :vcr do
 
+    it_behaves_like "an asynchronous operation" do
+
+      after { delete_test_container("test-container-2") }
+
+      let(:operation) do
+        lambda do |options| 
+          client.create_container("test-container", alias: "cirros", sync: true)
+          client.rename_container("test-container", "test-container-2", options)
+        end
+
+      end
+
+    end
+
     it "renames a container", :container do
       @test_container_name = "test-container-2"
 
       expect(client.containers).to include("test-container")
       expect(client.containers).to_not include(@test_container_name)
 
-      response = client.rename_container("test-container", @test_container_name)
-      client.wait_for_operation(response.id)
+      client.rename_container("test-container", @test_container_name)
 
       expect(client.containers).to_not include("test-container")
       expect(client.containers).to include(@test_container_name)
     end
 
     it "fails if the container is running", :container, :running do
-      response = client.rename_container("test-container", "test-container-2")
-      call = lambda { client.wait_for_operation(response.id) }
+      call = lambda { client.rename_container("test-container", "test-container-2") }
       expect(call).to raise_error(Hyperkit::BadRequest)
     end
 
@@ -905,7 +1036,7 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response)
 
-      client.rename_container("test", "test2")
+      client.rename_container("test", "test2", sync: false)
       assert_requested request
     end
   end
@@ -982,24 +1113,41 @@ describe Hyperkit::Client::Containers do
     let(:test_snapshot_source) { test_migration_source(test_migration_source_data.merge(snapshot: true)) }
 
     before(:each, remote_container: true) do |example|
-      response = lxd2.create_container("test-remote", alias: "cirros")
-      lxd2.wait_for_operation(response.id)
+      lxd2.create_container("test-remote", alias: "cirros", sync: true)
 
       if example.metadata[:remote_snapshot]
-        response = lxd2.create_snapshot("test-remote", "test-remote-snapshot")
-        lxd2.wait_for_operation(response.id)
+        lxd2.create_snapshot("test-remote", "test-remote-snapshot", sync: true)
       end
 
     end
 
     before(:each, remote_running: true) do
-      response = lxd2.start_container("test-remote")
-      lxd2.wait_for_operation(response.id)
+      lxd2.start_container("test-remote", sync: true)
     end
 
     after(:each, remote_container: true) do
-      response = lxd2.delete_container("test-remote")
-      lxd2.wait_for_operation(response.id)
+      lxd2.delete_container("test-remote", sync: true)
+    end
+
+    it_behaves_like "an asynchronous operation" do
+
+      before(:each) do
+        lxd2.create_container("test-remote", alias: "cirros", sync: true)
+        @source = lxd2.init_migration("test-remote")
+      end
+
+      after(:each) do
+        lxd.delete_container("test-container", sync: true)
+        lxd2.delete_container("test-remote", sync: true)
+      end
+
+      let(:operation) do
+        lambda do |options| 
+          client.migrate(@source, "test-container", options)
+        end
+
+      end
+
     end
 
     context "when the source is a container" do
@@ -1009,9 +1157,7 @@ describe Hyperkit::Client::Containers do
         source = lxd2.init_migration("test-remote")
         expect(client.containers).to_not include("test-container")
 
-        response = client.migrate(source, "test-container")
-        client.wait_for_operation(response.id)
-
+        client.migrate(source, "test-container")
         expect(client.containers).to include("test-container")
       end
 
@@ -1024,7 +1170,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response.merge(body: { metadata: {} }.to_json))
 
-        client.migrate(test_source, "test2")
+        client.migrate(test_source, "test2", sync: false)
         assert_requested request
 
       end
@@ -1042,7 +1188,7 @@ describe Hyperkit::Client::Containers do
             })).
             to_return(ok_response)
 
-          client.migrate(test_source, "test2", move: true)
+          client.migrate(test_source, "test2", move: true, sync: false)
           assert_requested request	
         end
 
@@ -1058,7 +1204,7 @@ describe Hyperkit::Client::Containers do
             })).
             to_return(ok_response)
 
-          client.migrate(test_source, "test2")
+          client.migrate(test_source, "test2", sync: false)
           assert_requested request	
         end
 
@@ -1076,7 +1222,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.migrate(test_source, "test2", architecture: "custom-arch")
+        client.migrate(test_source, "test2", architecture: "custom-arch", sync: false)
 				assert_requested request	
 			end
 
@@ -1092,7 +1238,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.migrate(test_source, "test2")
+        client.migrate(test_source, "test2", sync: false)
 				assert_requested request	
 			end
 
@@ -1118,7 +1264,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.migrate(test_source, "test2", certificate: "overridden")
+        client.migrate(test_source, "test2", certificate: "overridden", sync: false)
 				assert_requested request	
 			end
 
@@ -1144,7 +1290,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.migrate(test_source, "test2")
+        client.migrate(test_source, "test2", sync: false)
 				assert_requested request	
 			end
 
@@ -1162,7 +1308,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.migrate(test_source, "test2", config: { hello: "world" })
+        client.migrate(test_source, "test2", config: { hello: "world" }, sync: false)
 				assert_requested request	
       end
 
@@ -1174,17 +1320,14 @@ describe Hyperkit::Client::Containers do
 
         container = lxd2.container("test-remote")
         container.config = container.config.to_hash.merge("limits.memory" => "256MB")
-
-        response = lxd2.update_container("test-remote", container)
-        lxd2.wait_for_operation(response.id)
+        lxd2.update_container("test-remote", container)
 
         source = lxd2.init_migration("test-remote")
         expect(client.containers).to_not include("test-container")
 
-        response = client.migrate(source, "test-container")
-        client.wait_for_operation(response.id)
-
+        client.migrate(source, "test-container")
         migrated = client.container("test-container")
+
         expect(migrated.config["limits.memory"]).to eq("256MB")
 
       end
@@ -1201,7 +1344,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.migrate(test_source, "test2", profiles: %w[test1 test2])
+        client.migrate(test_source, "test2", profiles: %w[test1 test2], sync: false)
 				assert_requested request	
       end
 
@@ -1218,7 +1361,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.migrate(test_source, "test2")
+        client.migrate(test_source, "test2", sync: false)
 				assert_requested request	
 
       end
@@ -1246,7 +1389,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.migrate(test_source, "test2", ephemeral: true)
+        client.migrate(test_source, "test2", ephemeral: true, sync: false)
 				assert_requested request	
       end
 
@@ -1268,7 +1411,7 @@ describe Hyperkit::Client::Containers do
             })).
             to_return(ok_response)
 
-          client.migrate(source, "test2")
+          client.migrate(source, "test2", sync: false)
 				  assert_requested request	
 
         end
@@ -1286,10 +1429,11 @@ describe Hyperkit::Client::Containers do
             })).
             to_return(ok_response)
 
-          client.migrate(test_source, "test2")
+          client.migrate(test_source, "test2", sync: false)
 				  assert_requested request	
 
         end
+
       end
     
     end
@@ -1321,7 +1465,7 @@ describe Hyperkit::Client::Containers do
           }).
           to_return(ok_response.merge(body: { metadata: {} }.to_json))
 
-        client.migrate(test_snapshot_source, "test2")
+        client.migrate(test_snapshot_source, "test2", sync: false)
         assert_requested request
 
       end
@@ -1331,9 +1475,7 @@ describe Hyperkit::Client::Containers do
         source = lxd2.init_migration("test-remote", "test-remote-snapshot")
         expect(client.containers).to_not include("test-container")
 
-        response = client.migrate(source, "test-container")
-        client.wait_for_operation(response.id)
-
+        client.migrate(source, "test-container")
         expect(client.containers).to include("test-container")
       end
 
@@ -1343,9 +1485,28 @@ describe Hyperkit::Client::Containers do
 
   describe ".copy_container", :vcr do
 
+    it_behaves_like "an asynchronous operation" do
+
+      before(:each) do
+        lxd.create_container("test-container", alias: "cirros", sync: true)
+      end
+
+      after(:each) do
+        lxd.delete_container("test-container", sync: true)
+        lxd.delete_container("test-container2", sync: true)
+      end
+
+      let(:operation) do
+        lambda do |options| 
+          client.copy_container("test-container", "test-container2", options)
+        end
+
+      end
+
+    end
+
     after(:each, :delete_copy) do
-      response = client.delete_container("test-container2")
-      client.wait_for_operation(response.id)
+      client.delete_container("test-container2", sync: true)
     end
 
     it "makes the correct API call" do
@@ -1356,13 +1517,12 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response.merge(body: { metadata: {} }.to_json))
 
-      client.copy_container("test", "test2")
+      client.copy_container("test", "test2", sync: false)
       assert_requested request
     end
 
     it "copies a stopped container", :container, :delete_copy do
-      response = client.copy_container("test-container", "test-container2")
-      client.wait_for_operation(response.id)
+      client.copy_container("test-container", "test-container2")
 
       container1 = client.container("test-container")
       container2 = client.container("test-container2")
@@ -1376,8 +1536,7 @@ describe Hyperkit::Client::Containers do
     end
 
     it "copies a running container to a stopped target container", :container, :running, :delete_copy do
-      response = client.copy_container("test-container", "test-container2")
-      client.wait_for_operation(response.id)
+      client.copy_container("test-container", "test-container2")
 
       container1 = client.container("test-container")
       container2 = client.container("test-container2")
@@ -1394,18 +1553,12 @@ describe Hyperkit::Client::Containers do
     end
 
     it "fails if the target container already exists", :container do
-      response = client.copy_container("test-container", "test-container")
-
-      call = lambda do
-        client.wait_for_operation(response.id)
-      end
-
+      call = lambda { client.copy_container("test-container", "test-container") }
       expect(call).to raise_error(Hyperkit::BadRequest)
     end
 
     it "generates new MAC addresses for the target container", :container, :delete_copy do
-      response = client.copy_container("test-container", "test-container2")
-      client.wait_for_operation(response.id)
+      client.copy_container("test-container", "test-container2")
 
       container1 = client.container("test-container")
       container2 = client.container("test-container2")
@@ -1420,12 +1573,11 @@ describe Hyperkit::Client::Containers do
 
       it "copies the profiles", :container, :profiles, :delete_copy do
         container = client.container("test-container")
-        response = client.update_container("test-container",
-          container.to_hash.merge(profiles: %w[test-profile1 test-profile2]))
-        client.wait_for_operation(response.id)
 
-        response = client.copy_container("test-container", "test-container2")
-        client.wait_for_operation(response.id)
+        client.update_container("test-container",
+          container.to_hash.merge(profiles: %w[test-profile1 test-profile2]))
+
+        client.copy_container("test-container", "test-container2")
 
         container = client.container("test-container2")
         expect(container.profiles).to eq(%w[test-profile1 test-profile2])
@@ -1437,11 +1589,10 @@ describe Hyperkit::Client::Containers do
       container = client.container("test-container").to_hash
       config = container[:config]
 
-      response = client.update_container("test-container",
+      client.update_container("test-container",
         container.merge(config: config.merge("raw.lxc" => "lxc.aa_profile=unconfined")))
 
-      response = client.copy_container("test-container", "test-container2")
-      client.wait_for_operation(response.id)
+      client.copy_container("test-container", "test-container2")
 
       container = client.container("test-container2")
       expect(container.config["raw.lxc"]).to eq("lxc.aa_profile=unconfined")
@@ -1452,14 +1603,13 @@ describe Hyperkit::Client::Containers do
       it "creates a persistent target container" do
         container = client.container("test-container").to_hash
 
-        response = client.update_container("test-container",
+        client.update_container("test-container",
           container.to_hash.merge(ephemeral: true))
 
         container = client.container("test-container")
         expect(container).to be_ephemeral
 
-        response = client.copy_container("test-container", "test-container2")
-        client.wait_for_operation(response.id)
+        client.copy_container("test-container", "test-container2")
 
         container = client.container("test-container2")
         expect(container).to_not be_ephemeral
@@ -1478,7 +1628,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.copy_container("test", "test2", architecture: "i686")
+        client.copy_container("test", "test2", architecture: "i686", sync: false)
 
         assert_requested request
       end
@@ -1496,7 +1646,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.copy_container("test", "test2", profiles: %w[test1 test2])
+        client.copy_container("test", "test2", profiles: %w[test1 test2], sync: false)
 
         assert_requested request
       end
@@ -1505,10 +1655,9 @@ describe Hyperkit::Client::Containers do
 
         container1 = client.container("test-container")
 
-        response = client.copy_container("test-container",
+        client.copy_container("test-container",
           "test-container2",
           profiles: %w[test-profile1 test-profile2])
-        client.wait_for_operation(response.id)
 
         container2 = client.container("test-container2")
 
@@ -1530,16 +1679,15 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.copy_container("test", "test2", ephemeral: true)
+        client.copy_container("test", "test2", ephemeral: true, sync: false)
 
         assert_requested request
       end
 
       it "makes the container ephemeral", :container, :delete_copy do
-        response = client.copy_container("test-container",
+        client.copy_container("test-container",
           "test-container2",
           ephemeral: true)
-        client.wait_for_operation(response.id)
 
         container1 = client.container("test-container")
         container2 = client.container("test-container2")
@@ -1553,8 +1701,7 @@ describe Hyperkit::Client::Containers do
     context "when 'ephemeral: true' is not specified", :container, :delete_copy do
 
       it "defaults to a persistent container" do
-        response = client.copy_container("test-container", "test-container2")
-        client.wait_for_operation(response.id)
+        client.copy_container("test-container", "test-container2")
 
         container1 = client.container("test-container")
         container2 = client.container("test-container2")
@@ -1577,16 +1724,16 @@ describe Hyperkit::Client::Containers do
           to_return(ok_response)
 
         client.copy_container("test", "test2",
-          config: { hello: "world" })
+          config: { hello: "world" },
+          sync: false)
 
         assert_requested request
       end
 
       it "stores the configuration with the container", :container, :delete_copy do
-        response = client.copy_container("test-container",
+        client.copy_container("test-container",
           "test-container2",
           config: { "volatile.eth0.hwaddr" => "aa:bb:cc:dd:ee:ff" })
-        client.wait_for_operation(response.id)
 
         container = client.container("test-container2")
         expect(container.config["volatile.eth0.hwaddr"]).to eq("aa:bb:cc:dd:ee:ff")
@@ -1659,6 +1806,25 @@ describe Hyperkit::Client::Containers do
 
   describe ".create_snapshot", :vcr do
 
+    it_behaves_like "an asynchronous operation" do
+
+      before(:each) do
+        lxd.create_container("test-container", alias: "cirros", sync: true)
+      end
+
+      after(:each) do
+        lxd.delete_container("test-container", sync: true)
+      end
+
+      let(:operation) do
+        lambda do |options| 
+          client.create_snapshot("test-container", "test-snapshot", options)
+        end
+
+      end
+
+    end
+
     it "make the correct API call" do
       request = stub_post("/1.0/containers/test/snapshots").
         with(body: hash_including({
@@ -1666,21 +1832,18 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response.merge(body: { metadata: [] }.to_json))
 
-      snapshots = client.create_snapshot("test", "snap")
+      snapshots = client.create_snapshot("test", "snap", sync: false)
       assert_requested request
     end
 
     it "creates a snapshot of a stopped container", :container do
-      response = client.create_snapshot("test-container", "test-snapshot")
-      client.wait_for_operation(response.id)
-
+      client.create_snapshot("test-container", "test-snapshot")
       snapshots = client.snapshots("test-container")
       expect(snapshots).to include("test-snapshot")
     end
 
     it "creates a stateless snapshot of a running container", :container, :running do
-      response = client.create_snapshot("test-container", "test-snapshot")
-      client.wait_for_operation(response.id)
+      client.create_snapshot("test-container", "test-snapshot")
 
       snapshots = client.snapshots("test-container")
       expect(snapshots).to include("test-snapshot")
@@ -1699,7 +1862,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response.merge(body: { metadata: [] }.to_json))
 
-        snapshots = client.create_snapshot("test", "snap", stateful: true)
+        snapshots = client.create_snapshot("test", "snap", stateful: true, sync: false)
         assert_requested request
       end
 
@@ -1709,18 +1872,35 @@ describe Hyperkit::Client::Containers do
 
   describe ".delete_snapshot", :vcr do
 
+    it_behaves_like "an asynchronous operation" do
+
+      before(:each) do
+        lxd.create_container("test-container", alias: "cirros", sync: true)
+        lxd.create_snapshot("test-container", "test-snapshot", sync: true)
+      end
+
+      after(:each) do
+        lxd.delete_container("test-container", sync: true)
+      end
+
+      let(:operation) do
+        lambda do |options| 
+          client.delete_snapshot("test-container", "test-snapshot", options)
+        end
+
+      end
+
+    end
+
     it "deletes the snapshot", :container, :snapshot do
       expect(client.snapshots("test-container")).to include("test-snapshot")
-
-      response = client.delete_snapshot("test-container", "test-snapshot")
-      client.wait_for_operation(response.id)
-
+      client.delete_snapshot("test-container", "test-snapshot")
       expect(client.snapshots("test-container")).to_not include("test-snapshot")
     end
 
     it "makes the correct API call" do
       request = stub_delete("/1.0/containers/test/snapshots/snap").to_return(ok_response)
-      client.delete_snapshot("test","snap")
+      client.delete_snapshot("test","snap", sync: false)
       assert_requested request
     end
 
@@ -1728,12 +1908,31 @@ describe Hyperkit::Client::Containers do
 
   describe ".rename_snapshot", :vcr do
 
+    it_behaves_like "an asynchronous operation" do
+
+      before(:each) do
+        lxd.create_container("test-container", alias: "cirros", sync: true)
+        lxd.create_snapshot("test-container", "test-snapshot", sync: true)
+      end
+
+      after(:each) do
+        lxd.delete_container("test-container", sync: true)
+      end
+
+      let(:operation) do
+        lambda do |options| 
+          client.rename_snapshot("test-container", "test-snapshot", "test-snapshot2", options)
+        end
+
+      end
+
+    end
+
     it "renames a snapshot", :container, :snapshot do
       expect(client.snapshots("test-container")).to include("test-snapshot")
       expect(client.snapshots("test-container")).to_not include("test-snapshot2")
 
-      response = client.rename_snapshot("test-container", "test-snapshot", "test-snapshot2")
-      client.wait_for_operation(response.id)
+      client.rename_snapshot("test-container", "test-snapshot", "test-snapshot2")
 
       expect(client.snapshots("test-container")).to_not include("test-snapshot")
       expect(client.snapshots("test-container")).to include("test-snapshot2")
@@ -1746,7 +1945,7 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response)
 
-      client.rename_snapshot("test", "snap", "snap2")
+      client.rename_snapshot("test", "snap", "snap2", sync: false)
       assert_requested request
     end
 
@@ -1754,25 +1953,38 @@ describe Hyperkit::Client::Containers do
 
   describe ".restore_snapshot", :vcr do
 
-    it "restores a snapshot", :container do
+    it_behaves_like "an asynchronous operation" do
 
-      response = client.create_snapshot("test-container", "test-snapshot")
-      client.wait_for_operation(response.id)
+      before(:each) do
+        lxd.create_container("test-container", alias: "cirros", sync: true)
+        lxd.create_snapshot("test-container", "test-snapshot", sync: true)
+      end
+
+      after(:each) do
+        lxd.delete_container("test-container", sync: true)
+      end
+
+      let(:operation) do
+        lambda do |options| 
+          client.restore_snapshot("test-container", "test-snapshot", options)
+        end
+
+      end
+
+    end
+
+    it "restores a snapshot", :container, :snapshot do
 
       container = client.container("test-container")
       container.config = container.config.to_hash.merge("limits.memory" => "256MB")
 
-      response = client.update_container("test-container", container)
-      client.wait_for_operation(response.id)
+      client.update_container("test-container", container)
 
       client.write_file("test-container", "/tmp/test.txt", content: "test")
       expect { client.read_file("test-container", "/tmp/test.txt") }.to_not raise_error
 
       container_before = client.container("test-container")
-
-      response = client.restore_snapshot("test-container", "test-snapshot")
-      client.wait_for_operation(response.id)
-
+      client.restore_snapshot("test-container", "test-snapshot")
       container_after = client.container("test-container")
 
       expect(container_before.config.to_hash).to have_key(:"volatile.apply_template")
@@ -1791,7 +2003,7 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response)
 
-      client.restore_snapshot("test", "snap")
+      client.restore_snapshot("test", "snap", sync: false)
       assert_requested request
 
     end
@@ -2133,26 +2345,44 @@ describe Hyperkit::Client::Containers do
 
   describe ".execute_command", :vcr do
 
+    it_behaves_like "an asynchronous operation" do
+
+      before(:each) do
+        lxd.create_container("test-container", alias: "cirros", sync: true)
+        lxd.start_container("test-container", sync: true)
+      end
+
+      after(:each) do
+        lxd.stop_container("test-container", force: true, sync: true)
+        lxd.delete_container("test-container", sync: true)
+      end
+
+      let(:operation) do
+        lambda do |options| 
+          client.execute_command("test-container", "echo 'hello'", options)
+        end
+
+      end
+
+    end
+
     it "runs the specified command in the container", :container, :running do
       expect { client.read_file("test-container", "/tmp/test.txt") }.to raise_error
-
-      response = client.execute_command("test-container", ["/bin/sh","-c","echo 'hello world' | tee /tmp/test.txt"])
-      res = client.wait_for_operation(response.id)
-
+      client.execute_command("test-container", ["/bin/sh","-c","echo 'hello world' | tee /tmp/test.txt"])
       expect(client.read_file("test-container", "/tmp/test.txt")).to eq("hello world\n")
     end
 
     it "accepts environment variables", :container, :running do
       expect { client.read_file("test-container", "/tmp/test.txt") }.to raise_error
 
-      response = client.execute_command("test-container",
+      client.execute_command("test-container",
         "/bin/sh -c 'echo \"$MYVAR\" $MYVAR2 > /tmp/test.txt'",
         environment: {
           MYVAR: "environment  test",
           MYVAR2: 42
         }
       )
-      res = client.wait_for_operation(response.id)
+
       expect(client.read_file("test-container", "/tmp/test.txt")).to eq("environment  test 42\n")
     end
 
@@ -2165,7 +2395,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.execute_command("test", "bash -c 'echo \"hello world\" | tee -a /tmp/test.txt'")
+        client.execute_command("test", "bash -c 'echo \"hello world\" | tee -a /tmp/test.txt'", sync: false)
         assert_requested request
       end
 
@@ -2180,7 +2410,7 @@ describe Hyperkit::Client::Containers do
           })).
           to_return(ok_response)
 
-        client.execute_command("test", ["bash", "-c", "echo \"hello world\" | tee -a /tmp/test.txt"])
+        client.execute_command("test", ["bash", "-c", "echo \"hello world\" | tee -a /tmp/test.txt"], sync: false)
         assert_requested request
       end
 
@@ -2192,6 +2422,5 @@ describe Hyperkit::Client::Containers do
     end
 
   end
-
 
 end

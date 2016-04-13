@@ -206,12 +206,15 @@ module Hyperkit
 
       # Upload an image from a local file
       #
+      # @async This method is asynchronous.  See {Hyperkit::Configurable#auto_sync} for more information.
+      #
       # @param file [String] Path of image tarball to be uploaded
       # @param options [Hash] Additional data to be passed
       # @option options [String] :fingerprint SHA-256 fingerprint of the tarball. If the fingerprint of the uploaded image does not match, the image will not be saved on the server.
       # @option options [String] :filename Tarball filename to store with the image on the server and used when exporting the image (default: name of file being uploaded).
       # @option options [Boolean] :public Whether or not the image should be publicly-accessible by unauthenticated users (default: false).
       # @option options [Hash] :properties Hash of additional properties to store with the image
+      # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
       #
       # @example Upload a private image
       #   Hyperkit.client.create_image_from_file("/tmp/ubuntu-14.04-amd64-lxc.tar.gz")
@@ -246,14 +249,17 @@ module Hyperkit
           headers["X-LXD-properties"] = properties.join("&")
         end
 
-        response = post images_path, {
+        response = post(images_path, {
           raw_body: File.read(file),
           headers: headers
-        }
-        response[:metadata]
+        }).metadata
+
+        handle_async(response, options[:sync])
       end
 
       # Import an image from a remote server
+      #
+      # @async This method is asynchronous.  See {Hyperkit::Configurable#auto_sync} for more information.
       #
       # @param server [String] Source server
       # @param options [Hash] Additional data to be passed
@@ -266,6 +272,7 @@ module Hyperkit
       # @option options [Boolean] :public Whether or not the image should be publicly-accessible by unauthenticated users (default: <code>false</code>).
       # @option options [Hash] :properties Hash of additional properties to store with the image
       # @option options [String] :secret Secret to use to retrieve the image
+      # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
       #
       # @example Import image by alias
       #   Hyperkit.client.create_image_from_remote("https://images.linuxcontainers.org:8443", 
@@ -314,9 +321,8 @@ module Hyperkit
           opts[:source][:fingerprint] = options[:fingerprint]
         end
 
-        response = post images_path, opts
-        response[:metadata]
-
+        response = post(images_path, opts).metadata
+				handle_async(response, options[:sync])
       end
 
       # Import an image from a remote URL.
@@ -335,11 +341,14 @@ module Hyperkit
       # In Apache, you can set this up using a <code>.htaccess</code> file.  See the <b>Examples</b> section
       # for a sample.
       #
+      # @async This method is asynchronous.  See {Hyperkit::Configurable#auto_sync} for more information.
+      #
       # @param url [String] URL containing image headers (see above)
       # @param options [Hash] Additional data to be passed
       # @option options [String] :filename Tarball filename to store with the image on the server and used when exporting the image (default: name of file being uploaded).
       # @option options [Boolean] :public Whether or not the image should be publicly-accessible by unauthenticated users (default: false).
       # @option options [Hash] :properties Hash of additional properties to store with the image
+      # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
       #
       # @example Import a private image
       #   Hyperkit.client.create_image_from_url("http://example.com/ubuntu-14.04")
@@ -377,17 +386,20 @@ module Hyperkit
 					url: url
 				}
 
-        response = post images_path, opts
-        response[:metadata]
+        response = post(images_path, opts).metadata
+        handle_async(response, options[:sync])
       end
 
       # Create an image from an existing container.
+      #
+      # @async This method is asynchronous.  See {Hyperkit::Configurable#auto_sync} for more information.
       #
       # @param name [String] Source container name
       # @param options [Hash] Additional data to be passed
       # @option options [String] :filename Tarball filename to store with the image on the server and used when exporting the image (default: name of file being uploaded).
       # @option options [Boolean] :public Whether or not the image should be publicly-accessible by unauthenticated users (default: false).
       # @option options [Hash] :properties Hash of additional properties to store with the image
+      # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
       #
       # @example Create a private image from container 'test-container'
       #   Hyperkit.client.create_image_from_container("test-container")
@@ -413,11 +425,13 @@ module Hyperkit
 					name: name
 				}
 
-        response = post images_path, opts
-        response[:metadata]
+        response = post(images_path, opts).metadata
+				handle_async(response, options[:sync])
       end
 
       # Create an image from an existing snapshot.
+      #
+      # @async This method is asynchronous.  See {Hyperkit::Configurable#auto_sync} for more information.
       #
       # @param container [String] Source container name
       # @param snapshot [String] Source snapshot name
@@ -425,6 +439,7 @@ module Hyperkit
       # @option options [String] :filename Tarball filename to store with the image on the server and used when exporting the image (default: name of file being uploaded).
       # @option options [Boolean] :public Whether or not the image should be publicly-accessible by unauthenticated users (default: false).
       # @option options [Hash] :properties Hash of additional properties to store with the image
+      # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
       #
       # @example Create a private image from snapshot 'test-container/snapshot1'
       #   Hyperkit.client.create_image_from_snapshot("test-container", "snapshot1")
@@ -450,20 +465,24 @@ module Hyperkit
 					name: "#{container}/#{snapshot}"
 				}
 
-        response = post images_path, opts
-        response[:metadata]
+        response = post(images_path, opts).metadata
+				handle_async(response, options[:sync])
       end
  
       # Delete an image
       #
+      # @async This method is asynchronous.  See {Hyperkit::Configurable#auto_sync} for more information.
+      #
       # @param fingerprint [String] Fingerprint of image to delete
+      # @param options [Hash] Additional data to be passed
+      # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
       #
       # @example Delete an image using its fingerprint
       #   image = Hyperkit.client.image_by_alias("ubuntu/xenial/amd64")
       #   Hyperkit.client.delete_image(image[:fingerprint])
-      def delete_image(fingerprint)
-        response = delete image_path(fingerprint)
-        response[:metadata]
+      def delete_image(fingerprint, options={})
+        response = delete(image_path(fingerprint)).metadata
+				handle_async(response, options[:sync])
       end
 
       # Update the attributes of an image
