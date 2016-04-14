@@ -13,8 +13,8 @@ module Hyperkit
       # @example Get list of networks
       #   Hyperkit.client.networks #=> ["lo", "eth0", "lxcbr0"]
       def networks
-        response = get networks_path
-        response[:metadata].map { |path| path.split('/').last }
+        response = get(networks_path)
+        response.metadata.map { |path| path.split('/').last }
       end
 
       # Get information on a network
@@ -23,8 +23,7 @@ module Hyperkit
       # @example Get information about lxcbr0
       #   Hyperkit.client.network("lxcbr0") #=> {:name=>"lxcbr0", :type=>"bridge", :used_by=>[]}
       def network(name)
-        response = get network_path(name)
-        response[:metadata]
+        get(network_path(name)).metadata
       end
 
       private

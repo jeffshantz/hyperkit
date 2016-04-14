@@ -9,40 +9,37 @@ module Hyperkit
 
       # GET /profiles
       def profiles
-        response = get profiles_path
-        response[:metadata].map { |path| path.split('/').last }
+        response = get(profiles_path)
+        response.metadata.map { |path| path.split('/').last }
       end
 
       # POST /profiles
       def create_profile(name, options={})
         options = options.merge(name: name)
-        response = post profiles_path, options
-        response[:metadata]
+        post(profiles_path, options).metadata
       end
 
       # GET /profiles/<name>
       def profile(name)
-        response = get profile_path(name)
-        response[:metadata]
+        get(profile_path(name)).metadata
       end
 
       # PUT /profiles/<name>
       def update_profile(name, options={})
-        response = put profile_path(name), options.except(:name)
-        response[:metadata]
+        put(profile_path(name), options.except(:name)).metadata
       end
 
       # POST /profiles/<name>
       def rename_profile(old_name, new_name)
-        response = post profile_path(old_name), { name: new_name }
-        response[:metadata]
+        post(profile_path(old_name), { name: new_name }).metadata
       end
 
       # DELETE /profiles/<name>
       def delete_profile(name)
-        response = delete profile_path(name)
-        response[:metadata]
+        delete(profile_path(name)).metadata
       end
+
+      private
 
       def profiles_path
         "/1.0/profiles"
