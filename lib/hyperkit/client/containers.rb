@@ -17,7 +17,7 @@ module Hyperkit
       # @example Get list of containers
       #   Hyperkit.client.containers #=> ["container1", "container2", "container3"]
       def containers
-        response = get containers_path 
+        response = get(containers_path)
         response.metadata.map { |path| path.split('/').last }
       end
 
@@ -126,7 +126,6 @@ module Hyperkit
       def create_container(name, options={})
 
         source = container_source_attribute(options)
-
         opts = options.except(:sync)
 
         if ! opts[:empty] && source.empty?

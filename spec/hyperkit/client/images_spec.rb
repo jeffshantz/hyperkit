@@ -23,9 +23,10 @@ describe Hyperkit::Client::Images do
         "/1.0/images/97d97a3d1d053840ca19c86cdd0596cf1be060c5157d31407f2a4f9f350c78cc",
         "/1.0/images/a49d26ce5808075f5175bf31f5cb90561f5023dcd408da8ac5e834096d46b2d8",
         "/1.0/images/c9b6e738fae75286d52f497415463a8ecc61bbcb046536f220d797b0e500a41f"
-			]}.to_json
+			]}
+
       stub_get("/1.0/images").
-        to_return(:status => 200, body: body, :headers => {'Content-Type' => 'application/json'})
+        to_return(ok_response.merge(body: body.to_json))
 
       images = client.images
       expect(images).to eq(%w[

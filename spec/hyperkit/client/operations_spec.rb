@@ -82,7 +82,7 @@ describe Hyperkit::Client::Operations do
         to_return(ok_response.merge(body: operation.to_json))
 
       op = client.operation("b8d84888-1dc2-44fd-b386-7f679e171ba5")
-      expect(op).to eq(operation.merge(
+      expect(op.to_h).to eq(operation.merge(
         created_at: Time.parse(operation[:created_at]),
         updated_at: Time.parse(operation[:updated_at]))
       )

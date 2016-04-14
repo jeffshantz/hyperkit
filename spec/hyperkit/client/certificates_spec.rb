@@ -20,9 +20,10 @@ describe Hyperkit::Client::Certificates do
       body = { metadata: [
         "/1.0/certificates/3ee64be3c3c7d617a7470e14f2d847081ad467c8c26e1caad841c8f67f7c7b09",
         "/1.0/certificates/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-			]}.to_json
+			]}
+
       stub_get("/1.0/certificates").
-        to_return(:status => 200, body: body, :headers => {'Content-Type' => 'application/json'})
+        to_return(ok_response.merge(body: body.to_json))
 
       certs = client.certificates
       expect(certs).to eq(%w[
@@ -53,7 +54,7 @@ describe Hyperkit::Client::Certificates do
     it "passes on a specified trust password for unauthenticated addition of a certificate" do
       request = stub_post("/1.0/certificates").
           with(body: hash_including({ password: "server-trust-password" })).
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response)
 
       unauthenticated_client.create_certificate(test_cert, {
         password: "server-trust-password"
@@ -63,8 +64,7 @@ describe Hyperkit::Client::Certificates do
     end
 
     it "makes the correct API call" do
-      request = stub_post("/1.0/certificates").
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+      request = stub_post("/1.0/certificates").to_return(ok_response)
       client.create_certificate(test_cert)
       assert_requested request
     end
@@ -78,16 +78,16 @@ describe Hyperkit::Client::Certificates do
       client.create_certificate(test_cert)
       cert = client.certificate(test_cert_fingerprint)
 
-      expect(cert[:certificate]).to eq(test_cert)
-      expect(cert[:fingerprint]).to eq(test_cert_fingerprint)
-      expect(cert[:type]).to eq("client")
+      expect(cert.certificate).to eq(test_cert)
+      expect(cert.fingerprint).to eq(test_cert_fingerprint)
+      expect(cert.type).to eq("client")
 
       client.delete_certificate(test_cert_fingerprint)
     end
 
     it "makes the correct API call" do
 			request = stub_get("/1.0/certificates/#{test_cert_fingerprint}").
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response)
 
       client.certificate(test_cert_fingerprint)
       assert_requested request
@@ -105,7 +105,7 @@ describe Hyperkit::Client::Certificates do
 
     it "makes the correct API call" do
       request = stub_delete("/1.0/certificates/#{test_cert_fingerprint}").
-        to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+        to_return(ok_response)
       client.delete_certificate(test_cert_fingerprint)
       assert_requested request
     end

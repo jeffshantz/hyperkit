@@ -10,27 +10,25 @@ module Hyperkit
 
       # GET /certificates
       def certificates 
-        response = get certificates_path 
-        response[:metadata].map { |path| path.split('/').last }
+        response = get(certificates_path)
+        response.metadata.map { |path| path.split('/').last }
       end
 
       # POST /certificates
       def create_certificate(cert, options={})
         options = options.slice(:name, :password)
         options = options.merge(type: "client", certificate: Base64.strict_encode64(OpenSSL::X509::Certificate.new(cert).to_der))
-        response = post certificates_path, options
+        post(certificates_path, options).metadata
       end
 
       # GET /certificates/<fingerprint>
       def certificate(fingerprint)
-        response = get certificate_path(fingerprint)
-        response[:metadata]
+        get(certificate_path(fingerprint)).metadata
       end
 
       # DELETE /certificates/<fingerprint>
       def delete_certificate(fingerprint)
-        response = delete certificate_path(fingerprint)
-        response[:metadata]
+        delete(certificate_path(fingerprint)).metadata
       end
 
       def certificate_path(fingerprint)

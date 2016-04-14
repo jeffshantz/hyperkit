@@ -9,28 +9,26 @@ module Hyperkit
 
       # GET /operations
       def operations
-        response = get operations_path
-        response[:metadata].to_h.values.flatten.map { |path| path.split('/').last }
+        response = get(operations_path)
+        response.metadata.to_h.values.flatten.map { |path| path.split('/').last }
       end
 
       # GET /operations/<uuid>
       def operation(uuid)
-        response = get operation_path(uuid)
-        response.to_h
+        get(operation_path(uuid))
       end
 
       # DELETE /operations/<uuid>
       def cancel_operation(uuid)
-        response = delete operation_path(uuid)
-        response.to_h
+        delete(operation_path(uuid))
       end
 
       # GET /operations/<uuid>/wait
       def wait_for_operation(uuid, timeout=nil)
         url = File.join(operation_path(uuid), "wait")
         url += "?timeout=#{timeout}" if timeout.to_i > 0
-        response = get url
-        response[:metadata]
+
+        get(url).metadata
       end
 
       private

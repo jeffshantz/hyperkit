@@ -14,8 +14,8 @@ module Hyperkit
       #   Hyperkit.client.images #=> ["54c8caac1f61901ed86c68f24af5f5d3672bdc62c71d04f06df3a59e95684473",
       #                               "97d97a3d1d053840ca19c86cdd0596cf1be060c5157d31407f2a4f9f350c78cc"]
       def images 
-        response = get images_path 
-        response[:metadata].map { |path| path.split('/').last }
+        response = get(images_path)
+        response.metadata.map { |path| path.split('/').last }
       end
 
       # Get information on an image by its fingerprint
@@ -48,8 +48,7 @@ module Hyperkit
         url = image_path(fingerprint)
         url << "?secret=#{options[:secret]}" if options[:secret]
 
-        response = get url
-        response[:metadata]
+        get(url).metadata
       end
 
       # Get information on an image by one of its aliases
@@ -86,7 +85,7 @@ module Hyperkit
       #     secret: "secret-issued-by-create_image_secret")
       def image_by_alias(alias_name, options={})
         a = image_alias(alias_name)
-        image(a[:target], options)
+        image(a.target, options)
       end
 
       # List of image aliases on the server (public or private)
@@ -108,8 +107,8 @@ module Hyperkit
       #     "ubuntu/xenial/s390x"
       #   ] 
       def image_aliases
-        response = get image_aliases_path 
-        response[:metadata].map { |path| path.sub("#{image_aliases_path}/","") }
+        response = get(image_aliases_path)
+        response.metadata.map { |path| path.sub("#{image_aliases_path}/","") }
       end
 
       # Get information on an image alias
@@ -124,8 +123,7 @@ module Hyperkit
       #     :target=>"878cf0c70e14fec80aaf4d5e923670e68c45aa89fb05a481019bf086aec42649"
       #   }
       def image_alias(alias_name)
-        response = get image_alias_path(alias_name)
-        response[:metadata]
+        get(image_alias_path(alias_name)).metadata
       end
  
       # Assign an alias for an image
@@ -145,13 +143,12 @@ module Hyperkit
       #     "ubuntu/xenial/amd64",
       #     description: "Ubuntu Xenial amd64")
       def create_image_alias(fingerprint, alias_name, options={})
-        response = post image_aliases_path, options.slice(:description).merge(
-          {
-            target: fingerprint,
-            name: alias_name
-          }
-        )
-        response[:metadata]
+        opts = options.slice(:description).merge({
+          target: fingerprint,
+          name: alias_name
+        })
+
+        post(image_aliases_path, opts).metadata
       end
 
       # Delete an alias for an image
@@ -161,8 +158,7 @@ module Hyperkit
       # @example Delete alias "ubuntu/xenial/amd64"
       #   Hyperkit.client.delete_image_alias("ubuntu/xenial/amd64")
       def delete_image_alias(alias_name)
-        response = delete image_alias_path(alias_name)
-        response[:metadata]
+        delete(image_alias_path(alias_name)).metadata
       end
 
       # Rename an image alias
@@ -173,8 +169,7 @@ module Hyperkit
       # @example Rename alias "ubuntu/xenial/amd64" to "ubuntu/xenial/default"
       #   Hyperkit.client.rename_image_alias("ubuntu/xenial/amd64", "ubuntu/xenial/default")
       def rename_image_alias(old_alias, new_alias)
-        response = post image_alias_path(old_alias), { name: new_alias }
-        response[:metadata]
+        post(image_alias_path(old_alias), { name: new_alias }).metadata
       end
 
       # Update an image alias
@@ -200,8 +195,7 @@ module Hyperkit
         opts = existing_options.slice(:description, :target).
                                 merge(options.slice(:description, :target))
 
-        response = put image_alias_path(alias_name), opts
-        response.metadata
+        put(image_alias_path(alias_name), opts).metadata
       end
 
       # Upload an image from a local file
@@ -515,13 +509,10 @@ module Hyperkit
       #     })
       #   )
       def update_image(fingerprint, options={})
-
         opts = options.slice(:public, :auto_update)
         opts[:properties] = stringify_properties(options[:properties]) if options[:properties]
 
-        response = put image_path(fingerprint), opts
-        response[:metadata]
-
+        put(image_path(fingerprint), opts).metadata
       end
  
       # Generate a secret for an image that can be used by an untrusted client 
@@ -538,7 +529,7 @@ module Hyperkit
       # @example Generate a secret for an image
       #   Hyperkit.client.create_image_secret("878cf0c70e14fec80aaf4d5e923670e68c45aa89fb05a481019bf086aec42649")
       def create_image_secret(fingerprint)
-        response = post File.join(image_path(fingerprint), "secret")
+        response = post(File.join(image_path(fingerprint), "secret"))
 
         # Sigh
         if response && response.metadata && response.metadata.metadata
@@ -580,7 +571,7 @@ module Hyperkit
         url = File.join(image_path(fingerprint), "export")
         url << "?secret=#{options[:secret]}" if options[:secret]
 
-        response = get url
+        response = get(url)
 
         File.open(output_file, "wb") do |f|
           f.write response
