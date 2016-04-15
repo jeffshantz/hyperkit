@@ -1,4 +1,14 @@
 language: ruby
+
 rvm:
+  - jruby
+  - rbx-2
   - 1.9.3
-before_install: gem install bundler -v 1.11.2
+  - 2.0
+  - 2.1
+  - 2.2
+
+bundler_args: --without development
+
+notifications:
+  emails: true
