@@ -271,7 +271,7 @@ module Hyperkit
       # @example Rename container "test" to "test2"
       #   Hyperkit.rename_container("test", "test2")
       def rename_container(old_name, new_name, options={})
-        response = post(container_path(old_name), { "name": new_name }).metadata
+        response = post(container_path(old_name), { name: new_name }).metadata
         handle_async(response, options[:sync])
       end
 
@@ -562,7 +562,7 @@ module Hyperkit
           source = container(container)
         end
 
-        response = post(url, { "migration": true })
+        response = post(url, { migration: true })
         agent = response.agent
 
         source_data = {
@@ -795,7 +795,7 @@ module Hyperkit
       # @example Rename snapshot "test/snap1" to "snap2"
       #   Hyperkit.rename_snapshot("test", "snap1", "snap2")
       def rename_snapshot(container, old_name, new_name, options={})
-        response = post(snapshot_path(container, old_name), { "name": new_name }).metadata
+        response = post(snapshot_path(container, old_name), { name: new_name }).metadata
         handle_async(response, options[:sync])
       end
 
@@ -812,7 +812,7 @@ module Hyperkit
       # @example Restore container "test" back to snapshot "snap1"
       #   Hyperkit.restore_snapshot("test", "snap1")
       def restore_snapshot(container, snapshot, options={})
-        response = put(container_path(container), { "restore": snapshot }).metadata
+        response = put(container_path(container), { restore: snapshot }).metadata
         handle_async(response, options[:sync])
       end
 

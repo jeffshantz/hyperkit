@@ -10,5 +10,13 @@ rvm:
 
 bundler_args: --without development
 
+sudo: false
+
+matrix:
+  allow_failures:
+    - rvm: jruby
+    - rvm: rbx-2
+    - rvm: 1.9.3
+
 notifications:
   emails: true

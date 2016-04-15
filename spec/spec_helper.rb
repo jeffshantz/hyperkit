@@ -16,7 +16,11 @@ require 'rspec'
 require 'webmock/rspec'
 require "base64"
 require 'digest/sha2'
-require 'pry'
+
+begin
+  require 'pry'
+rescue LoadError
+end
 
 WebMock.disable_net_connect!(:allow => 'coveralls.io')
 
