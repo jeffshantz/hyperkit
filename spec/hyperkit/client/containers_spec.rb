@@ -956,7 +956,7 @@ describe Hyperkit::Client::Containers do
         })).
         to_return(ok_response)
 
-      client.update_container("test", {"hello": "world"}, sync: false)
+      client.update_container("test", {hello: "world"}, sync: false)
       assert_requested request
     end
 
@@ -1992,7 +1992,7 @@ describe Hyperkit::Client::Containers do
 
       expect(container_before.config["limits.memory"]).to eq("256MB")
       expect(container_after.config["limits.memory"]).to be_nil
-      expect { client.read_file("test-container", "/tmp/test.txt") }.to raise_error
+      expect { client.read_file("test-container", "/tmp/test.txt") }.to raise_error(Hyperkit::NotFound)
 
     end
 
@@ -2125,10 +2125,21 @@ describe Hyperkit::Client::Containers do
 			it "raises an error", :container do
 
 			  Dir.mktmpdir do |dir|
-          call = lambda do
-			  	  client.pull_file("test-container", "/etc/passwd", dir)
+          test = lambda do
+            begin
+			  	    client.pull_file("test-container", "/etc/passwd", dir)
+              return false
+            rescue => ex
+              return ex.is_a?(Errno::EISDIR) || ex.is_a?(Errno::EACCES)
+            end
           end
-          expect(call).to raise_error(Errno::EISDIR)
+
+          # This test is a bit convoluted since JRuby throws a different
+          # error (EACCES) than the rest of them.  RSpec has deprecated
+          # the use of the raise_error matcher without specifying the
+          # error being raised, and does not allow raise_error to be used
+          # in compound expectations.  Hence, the weirdness...
+          expect(test.call).to be_truthy
 			  end
 
       end
@@ -2367,13 +2378,13 @@ describe Hyperkit::Client::Containers do
     end
 
     it "runs the specified command in the container", :container, :running do
-      expect { client.read_file("test-container", "/tmp/test.txt") }.to raise_error
+      expect { client.read_file("test-container", "/tmp/test.txt") }.to raise_error(Hyperkit::NotFound)
       client.execute_command("test-container", ["/bin/sh","-c","echo 'hello world' | tee /tmp/test.txt"])
       expect(client.read_file("test-container", "/tmp/test.txt")).to eq("hello world\n")
     end
 
     it "accepts environment variables", :container, :running do
-      expect { client.read_file("test-container", "/tmp/test.txt") }.to raise_error
+      expect { client.read_file("test-container", "/tmp/test.txt") }.to raise_error(Hyperkit::NotFound)
 
       client.execute_command("test-container",
         "/bin/sh -c 'echo \"$MYVAR\" $MYVAR2 > /tmp/test.txt'",
