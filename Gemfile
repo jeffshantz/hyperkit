@@ -6,6 +6,7 @@ group :development do
   gem 'hirb-unicode'
   gem 'pry'
   gem 'yard'
+  gem 'rake'
 end
 
 group :test do
