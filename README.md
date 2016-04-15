@@ -336,6 +336,6 @@ the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
 
 The gem is available as open source under the terms of the [MIT
 License](http://opensource.org/licenses/MIT).  Its design is based on Octokit,
-also licensed under the MIT license.  See the file `LICENSE` for more
+also licensed under the MIT license.  See the file `LICENSE.txt` for more
 information.
 

@@ -6,12 +6,11 @@ require 'hyperkit/version'
 Gem::Specification.new do |spec|
   spec.name          = "hyperkit"
   spec.version       = Hyperkit::VERSION
-  spec.authors       = ["TODO: Write your name"]
-  spec.email         = ["TODO: Write your email address"]
+  spec.authors       = ["Jeff Shantz"]
+  spec.email         = ["hyperkit@jeffshantz.com"]
 
-  spec.summary       = %q{TODO: Write a short summary, because Rubygems requires one.}
-  spec.description   = %q{TODO: Write a longer description or delete this line.}
-  spec.homepage      = "TODO: Put your gem's website or public repo URL here."
+  spec.summary       = %q{Hyperkit is a flat API wrapper for LXD, the next-generation hypervisor}
+  spec.homepage      = "https://github.com/jeffshantz/hyperkit"
   spec.license       = "MIT"
 
   # Prevent pushing this gem to RubyGems.org by setting 'allowed_push_host', or
