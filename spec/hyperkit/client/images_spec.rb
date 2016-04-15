@@ -1201,7 +1201,7 @@ describe Hyperkit::Client::Images do
   describe ".create_image_secret", :vcr do
 
     it "creates a secret for an image", :image do
-      secret = client.create_image_secret(@fingerprint)
+      secret = client.create_image_secret(@fingerprint).metadata.secret
       expect { unauthenticated_client.image(@fingerprint) }.to raise_error(Hyperkit::NotFound)
 
       image = unauthenticated_client.image(@fingerprint, secret: secret)

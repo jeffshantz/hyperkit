@@ -1,7 +1,3 @@
-require 'openssl'
-require 'hyperkit/middleware/follow_redirects'
-require 'hyperkit/response/raise_error'
-
 ################################################################################
 #                                                                              #
 # Modeled on Octokit::Default                                                  #
@@ -22,6 +18,10 @@ require 'hyperkit/response/raise_error'
 # ---------------------------------------------------------------------------- #
 #                                                                              #
 ################################################################################
+
+require 'openssl'
+require 'hyperkit/middleware/follow_redirects'
+require 'hyperkit/response/raise_error'
 
 module Hyperkit
 

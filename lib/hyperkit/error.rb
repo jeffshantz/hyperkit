@@ -1,3 +1,25 @@
+################################################################################
+#                                                                              #
+# Modeled on Octokit::Error                                                    #
+#                                                                              #
+# Original Octokit license                                                     #
+# ---------------------------------------------------------------------------- #
+# Copyright (c) 2009-2016 Wynn Netherland, Adam Stacoviak, Erik Michaels-Ober  #
+#                                                                              #
+# Permission is hereby granted, free of charge, to any person obtaining a      #
+# copy of this software and associated documentation files (the "Software"),   #
+# to deal in the Software without restriction, including without limitation    #
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,     #
+# and/or sell copies of the Software, and to permit persons to whom the        #
+# Software is furnished to do so, subject to the following conditions:         #
+#                                                                              #
+# The above copyright notice and this permission notice shall be included      #
+# in all copies or substantial portions of the Software.                       #
+# ---------------------------------------------------------------------------- #
+#                                                                              #
+################################################################################
+
+
 module Hyperkit
 
   # Custom error class for rescuing from all LXD errors
@@ -188,26 +210,6 @@ module Hyperkit
   # Raised when LXD returns a 403 HTTP status code
   class Forbidden < ClientError; end
 
-  # Raised when LXD returns a 403 HTTP status code
-  # and body matches 'rate limit exceeded'
-  class TooManyRequests < Forbidden; end
-
-  # Raised when LXD returns a 403 HTTP status code
-  # and body matches 'login attempts exceeded'
-  class TooManyLoginAttempts < Forbidden; end
-
-  # Raised when LXD returns a 403 HTTP status code
-  # and body matches 'abuse'
-  class AbuseDetected < Forbidden; end
-
-  # Raised when LXD returns a 403 HTTP status code
-  # and body matches 'repository access blocked'
-  class RepositoryUnavailable < Forbidden; end
-
-  # Raised when LXD returns a 403 HTTP status code
-  # and body matches 'email address must be verified'
-  class UnverifiedEmail < Forbidden; end
-
   # Raised when LXD returns a 404 HTTP status code
   class NotFound < ClientError; end
 
@@ -240,16 +242,6 @@ module Hyperkit
 
   # Raised when LXD returns a 503 HTTP status code
   class ServiceUnavailable < ServerError; end
-
-  # Raised when client fails to provide valid Content-Type
-  class MissingContentType < ArgumentError; end
-
-  # Raised when a method requires an application client_id
-  # and secret but none is provided
-  class ApplicationCredentialsRequired < StandardError; end
-
-  # Raised when a repository is created with an invalid format
-  class InvalidRepository < ArgumentError; end
 
   # Raised when a method requires an alias or a fingerprint, but
   # none is provided
