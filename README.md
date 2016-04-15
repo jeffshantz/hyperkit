@@ -1,5 +1,7 @@
 # Hyperkit
 
+[![Gem Version](https://badge.fury.io/rb/hyperkit.svg)](https://badge.fury.io/rb/hyperkit) [![Build Status](https://travis-ci.org/jeffshantz/hyperkit.svg?branch=master)](https://travis-ci.org/jeffshantz/hyperkit) [![Coverage Status](https://coveralls.io/repos/github/jeffshantz/hyperkit/badge.svg?branch=master)](https://coveralls.io/github/jeffshantz/hyperkit?branch=master)
+
 Hyperkit is a flat API wrapper for LXD, the next-generation hypervisor.  It is
 shamelessly based on the design of Octokit, the popular wrapper for the GitHub
 API.
