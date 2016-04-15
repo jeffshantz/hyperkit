@@ -1,4 +1,5 @@
 require 'active_support/core_ext/array/extract_options'
+require 'shellwords'
 
 module Hyperkit
 
@@ -6,16 +7,18 @@ module Hyperkit
 
     # Methods for the containers API
     # 
+    # @see Hyperkit::Client
     # @see https://github.com/lxc/lxd/blob/master/specs/rest-api.md
     module Containers
 
-      REMOTE_IMAGE_ARGS = [:server, :protocol, :certificate, :secret]
+      # @!group Retrieval
 
       # List of containers on the server (public or private)
       #
       # @return [Array<String>] An array of container names
+      #
       # @example Get list of containers
-      #   Hyperkit.client.containers #=> ["container1", "container2", "container3"]
+      #   Hyperkit.containers #=> ["container1", "container2", "container3"]
       def containers
         response = get(containers_path)
         response.metadata.map { |path| path.split('/').last }
@@ -27,40 +30,44 @@ module Hyperkit
       # @return [Sawyer::Resource] Container information
       #
       # @example Get information about a container
-      #   Hyperkit.client.container("test-container") #=> {
+      #   Hyperkit.container("test-container") #=> {
       #     :architecture => "x86_64",
-      #       :config => {
-      #         :"volatile.base_image" => "097e75d6f7419d3a5e204d8125582f2d7bdd4ee4c35bd324513321c645f0c415",
-      #         :"volatile.eth0.hwaddr" => "00:16:3e:24:5d:7a",
-      #         :"volatile.eth0.name" => "eth0",
-      #         :"volatile.last_state.idmap" =>
-      #           "[{\"Isuid\":true,\"Isgid\":false,\"Hostid\":165536,\"Nsid\":0,\"Maprange\":65536},{\"Isuid\":false,\"Isgid\":true,\"Hostid\":165536,\"Nsid\":0,\"Maprange\":65536}]"
-      #       },
-      #       :created_at => 2016-03-18 20:55:26 UTC,
-      #       :devices => {
-      #         :root => {:path => "/", :type => "disk"}
-      #       },
-      #       :ephemeral => false,
-      #       :expanded_config => {
-      #         :"volatile.base_image" => "097e75d6f7419d3a5e204d8125582f2d7bdd4ee4c35bd324513321c645f0c415",
-      #         :"volatile.eth0.hwaddr" => "00:16:3e:24:5d:7a",
-      #         :"volatile.eth0.name" => "eth0",
-      #         :"volatile.last_state.idmap" =>
-      #           "[{\"Isuid\":true,\"Isgid\":false,\"Hostid\":165536,\"Nsid\":0,\"Maprange\":65536},{\"Isuid\":false,\"Isgid\":true,\"Hostid\":165536,\"Nsid\":0,\"Maprange\":65536}]"
-      #       },
-      #       :expanded_devices => {
-      #         :eth0 => { :nictype => "bridged", :parent => "lxcbr0", :type => "nic"},
-      #         :root => { :path => "/", :type => "disk"}
-      #       },
-      #       :name => "test-container",
-      #       :profiles => ["default"],
-      #       :stateful => false,
-      #       :status => "Stopped",
-      #       :status_code => 102
+      #     :config => {
+      #       :"volatile.base_image" => "097e75d6f7419d3a5e204d8125582f2d7bdd4ee4c35bd324513321c645f0c415",
+      #       :"volatile.eth0.hwaddr" => "00:16:3e:24:5d:7a",
+      #       :"volatile.eth0.name" => "eth0",
+      #       :"volatile.last_state.idmap" =>
+      #         "[{\"Isuid\":true,\"Isgid\":false,\"Hostid\":165536,\"Nsid\":0,\"Maprange\":65536},{\"Isuid\":false,\"Isgid\":true,\"Hostid\":165536,\"Nsid\":0,\"Maprange\":65536}]"
+      #     },
+      #     :created_at => 2016-03-18 20:55:26 UTC,
+      #     :devices => {
+      #       :root => {:path => "/", :type => "disk"}
+      #     },
+      #     :ephemeral => false,
+      #     :expanded_config => {
+      #       :"volatile.base_image" => "097e75d6f7419d3a5e204d8125582f2d7bdd4ee4c35bd324513321c645f0c415",
+      #       :"volatile.eth0.hwaddr" => "00:16:3e:24:5d:7a",
+      #       :"volatile.eth0.name" => "eth0",
+      #       :"volatile.last_state.idmap" =>
+      #         "[{\"Isuid\":true,\"Isgid\":false,\"Hostid\":165536,\"Nsid\":0,\"Maprange\":65536},{\"Isuid\":false,\"Isgid\":true,\"Hostid\":165536,\"Nsid\":0,\"Maprange\":65536}]"
+      #     },
+      #     :expanded_devices => {
+      #       :eth0 => { :nictype => "bridged", :parent => "lxcbr0", :type => "nic"},
+      #       :root => { :path => "/", :type => "disk"}
+      #     },
+      #     :name => "test-container",
+      #     :profiles => ["default"],
+      #     :stateful => false,
+      #     :status => "Stopped",
+      #     :status_code => 102
       #   }
       def container(name)
         get(container_path(name)).metadata
       end
+
+      # @!endgroup
+
+      # @!group Creation
 
       # Create a container from an image (local or remote).  The container will
       # be created in the <code>Stopped</code> state.
@@ -75,32 +82,36 @@ module Hyperkit
       # @option options [Hash] :config Container configuration
       # @option options [Boolean] :ephemeral Whether to make the container ephemeral (i.e. delete it when it is stopped; default: <code>false</code>)
       # @option options [Boolean] :empty Whether to make an empty container (i.e. not from an image).  Specifying <code>true</code> will cause LXD to create a container with no rootfs.  That is, /var/lib/lxd/<container-name> will simply be an empty directly.  One can then create a rootfs directory within this directory and populate it manually.  This is useful when migrating LXC containers to LXD.
-      # @option options [String] :fingerprint SHA-256 fingerprint of the source image.  <b>Either <code>:alias</code>, <code>:fingerprint</code>, <code>:properties</code>, or <code>empty: true</code> must be specified</b>.
+      # @option options [String] :fingerprint SHA-256 fingerprint of the source image.  This can be a prefix of a fingerprint, as long as it is unambiguous.  <b>Either <code>:alias</code>, <code>:fingerprint</code>, <code>:properties</code>, or <code>empty: true</code> must be specified</b>.
       # @option options [Array] :profiles List of profiles to be applied to the container (default: <code>[]</code>)
       # @option options [String] :properties Properties of the source image.  <b>Either <code>:alias</code>, <code>:fingerprint</code>, <code>:properties</code>, or <code>empty: true</code> must be specified</b>.
       # @option options [String] :protocol Protocol to use in transferring the image (<code>lxd</code> or <code>simplestreams</code>; defaults to <code>lxd</code>).  <b>This option is valid only when transferring an image from a remote server using the <code>:server</code> option.</b>
       # @option options [String] :secret Secret to use to retrieve the image.  <b>This option is valid only when transferring an image from a remote server using the <code>:server</code> option.</b>
       # @option options [String] :server URL of remote server from which to obtain image.  By default, the image will be obtained from the client's <code>api_endpoint</code>.
       # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
+      # @return [Sawyer::Resource] Operation or result, depending value of <code>:sync</code> parameter and/or {Hyperkit::Client::auto_sync}
       #
       # @example Create container from image specified by alias
-      #   Hyperkit.client.create_container("test-container", alias: "ubuntu/xenial/amd64")
+      #   Hyperkit.create_container("test-container", alias: "ubuntu/xenial/amd64")
       #
       # @example Create container from image specified by fingerprint
-      #   Hyperkit.client.create_container("test-container",
+      #   Hyperkit.create_container("test-container",
       #     fingerprint: "097e75d6f7419d3a5e204d8125582f2d7bdd4ee4c35bd324513321c645f0c415")
       #
+      # @example Create container from image specified by fingerprint prefix
+      #   Hyperkit.create_container("test-container", fingerprint: "097")
+      #
       # @example Create container based on most recent match of image properties
-      #   Hyperkit.client.create_container("test-container",
+      #   Hyperkit.create_container("test-container",
       #     properties: { os: "ubuntu", release: "14.04", architecture: "x86_64" }
       #
       # @example Create an empty container
-      #   Hyperkit.client.create_container("test-container", empty: true)
+      #   Hyperkit.create_container("test-container", empty: true)
       #
       # @example Create container with custom configuration.
       #
       #   # Set the MAC address of the container's eth0 device
-      #   Hyperkit.client.create_container("test-container",
+      #   Hyperkit.create_container("test-container",
       #     alias: "ubuntu/xenial/amd64",
       #     config: {
       #       "volatile.eth0.hwaddr" => "aa:bb:cc:dd:ee:ff"
@@ -108,18 +119,18 @@ module Hyperkit
       #   )
       #
       # @example Create container and apply profiles to it
-      #   Hyperkit.client.create_container("test-container",
+      #   Hyperkit.create_container("test-container",
       #     alias: "ubuntu/xenial/amd64",
       #     profiles: ["migratable", "unconfined"]
       #   )
       #
       # @example Create container from a publicly-accessible remote image
-      #   Hyperkit.client.create_container("test-container",
+      #   Hyperkit.create_container("test-container",
       #     server: "https://images.linuxcontainers.org:8443",
       #     alias: "ubuntu/xenial/amd64")
       #
       # @example Create container from a private remote image (authenticated by a secret)
-      #   Hyperkit.client.create_container("test-container",
+      #   Hyperkit.create_container("test-container",
       #     server: "https://private.example.com:8443",
       #     alias: "ubuntu/xenial/amd64",
       #     secret: "shhhhh")
@@ -156,23 +167,24 @@ module Hyperkit
       # @option options [Boolean] :ephemeral Whether to make the container ephemeral (i.e. delete it when it is stopped; default: <code>false</code>)
       # @option options [Array] :profiles List of profiles to be applied to the container (default: <code>[]</code>)
       # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
+      # @return [Sawyer::Resource] Operation or result, depending value of <code>:sync</code> parameter and/or {Hyperkit::Client::auto_sync}
       #
       # @example Copy container
-      #   Hyperkit.client.copy_container("existing", "new")
+      #   Hyperkit.copy_container("existing", "new")
       #
       # @example Copy container and override its configuration.
       #
       #   # Set the MAC address of the container's eth0 device
-      #   Hyperkit.client.copy_container("existing", "new", config: {
+      #   Hyperkit.copy_container("existing", "new", config: {
       #       "volatile.eth0.hwaddr" => "aa:bb:cc:dd:ee:ff"
       #     }
       #   )
       #
       # @example Copy container and apply profiles to it
-      #   Hyperkit.client.copy_container("existing", "new", profiles: ["migratable", "unconfined"])
+      #   Hyperkit.copy_container("existing", "new", profiles: ["migratable", "unconfined"])
       #
       # @example Create container from a publicly-accessible remote image
-      #   Hyperkit.client.create_container("test-container",
+      #   Hyperkit.create_container("test-container",
       #     server: "https://images.linuxcontainers.org:8443",
       #     alias: "ubuntu/xenial/amd64")
       def copy_container(source_name, target_name, options={})
@@ -188,6 +200,10 @@ module Hyperkit
         handle_async(response, options[:sync])
       
       end
+
+      # @!endgroup
+
+      # @!group Editing
 
       # Update the configuration of a container.
       #
@@ -206,19 +222,20 @@ module Hyperkit
       # @param config [Sawyer::Resource|Hash] Container configuration obtained from #container
       # @param options [Hash] Additional data to be passed
       # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
+      # @return [Sawyer::Resource] Operation or result, depending value of <code>:sync</code> parameter and/or {Hyperkit::Client::auto_sync}
       #
       # @example Add 'eth1' device to a container
-      #   container = Hyperkit.client.container("test-container")
+      #   container = Hyperkit.container("test-container")
       #   container.devices.eth1 = {nictype: "bridged", parent: "lxcbr0", type: "nic"}
-      #   Hyperkit.client.update_container("test-container", container)
+      #   Hyperkit.update_container("test-container", container)
       #
       # @example Change container to be ephemeral (i.e. it will be deleted when stopped)
-      #   container = Hyperkit.client.container("test-container")
+      #   container = Hyperkit.container("test-container")
       #   container.ephemeral = true
-      #   Hyperkit.client.update_container("test-container", container)
+      #   Hyperkit.update_container("test-container", container)
       #   
       # @example Change container's AppArmor profile to 'unconfined'.
-      #   container = Hyperkit.client.container("test-container")
+      #   container = Hyperkit.container("test-container")
       #
       #   # Note: due to a bug in Sawyer::Resource, the following will fail
       #   container.config[:"raw.lxc"] = "lxc.aa_profile=unconfined"
@@ -227,7 +244,7 @@ module Hyperkit
       #   container.config = container.config.to_hash
       #   container.config["raw.lxc"] = "lxc.aa_profile=unconfined"
       #
-      #   Hyperkit.client.update_container("test-container", container)
+      #   Hyperkit.update_container("test-container", container)
       def update_container(name, config, options={})
 
         config = config.to_hash
@@ -249,13 +266,72 @@ module Hyperkit
       # @param new_name [String] New container name
       # @param options [Hash] Additional data to be passed
       # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
+      # @return [Sawyer::Resource] Operation or result, depending value of <code>:sync</code> parameter and/or {Hyperkit::Client::auto_sync}
       #
       # @example Rename container "test" to "test2"
-      #   Hyperkit.client.rename_container("test", "test2")
+      #   Hyperkit.rename_container("test", "test2")
       def rename_container(old_name, new_name, options={})
         response = post(container_path(old_name), { "name": new_name }).metadata
         handle_async(response, options[:sync])
       end
+
+      # @!endgroup
+
+      # @!group Commands
+
+      # Execute a command in a container
+      #
+      # @async This method is asynchronous.  See {Hyperkit::Configurable#auto_sync} for more information.
+      #
+      # @param container [String] Container name
+      # @param command [Array|String] Command to execute
+      # @param options [Hash] Additional data to be passed
+      # @option options [Hash] :environment Environment variables to set prior to command execution
+      # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
+      # @return [Sawyer::Resource] Operation or result, depending value of <code>:sync</code> parameter and/or {Hyperkit::Client::auto_sync}
+      #
+      # @example Run a command (passed as a string) in container "test-container"
+      #   Hyperkit.execute_command("test-container", "echo 'hello world'")
+      #
+      # @example Run a command (passed as an array) in container "test-container"
+      #   Hyperkit.execute_command("test-container", 
+      #     ["bash", "-c", "echo 'hello world' > /tmp/test.txt"]
+      #   )
+      #
+      # @example Run a command and pass environment variables
+      #   Hyperkit.execute_command("test-container",
+      #     "/bin/sh -c 'echo \"$MYVAR\" $MYVAR2 > /tmp/test.txt'",
+      #     environment: {
+      #       MYVAR: "hello world",
+      #       MYVAR2: 42
+      #     }
+      #   )
+      def execute_command(container, command, options={})
+
+        opts = options.slice(:environment)
+        command = Shellwords.shellsplit(command) if command.is_a?(String)
+
+        # Stringify any environment values since LXD croaks on non-String values
+        if opts[:environment]
+          opts[:environment] = opts[:environment].inject({}){|h,(k,v)| h[k.to_s] = v.to_s; h}
+        end
+
+        response = post(File.join(container_path(container), "exec"), {
+          command: command,
+          environment: opts[:environment] || {},
+          "wait-for-websocket" => false,
+          interactive: false
+        }).metadata
+
+        handle_async(response, options[:sync])
+
+      end
+
+      alias_method :run_command, :execute_command
+
+      # @!endgroup
+
+      # @!group Deletion
 
       # Delete a container.  Throws an error if the container is running.
       #
@@ -264,14 +340,19 @@ module Hyperkit
       # @param name [String] Container name
       # @param options [Hash] Additional data to be passed
       # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
+      # @return [Sawyer::Resource] Operation or result, depending value of <code>:sync</code> parameter and/or {Hyperkit::Client::auto_sync}
       #
       # @example Delete container "test"
-      #   Hyperkit.client.delete_container("test")
+      #   Hyperkit.delete_container("test")
       #
       def delete_container(name, options={})
         response = delete(container_path(name)).metadata
         handle_async(response, options[:sync])
       end
+
+      # @!endgroup
+
+      # @!group State
 
       # Retrieve the current state of a container
       #
@@ -279,7 +360,7 @@ module Hyperkit
       # @return [Sawyer::Resource] Container state
       #
       # @example Get container state
-      #   Hyperkit.client.container_state("test-container") #=> {
+      #   Hyperkit.container_state("test-container") #=> {
       #   }
       def container_state(name)
         get(container_state_path(name)).metadata
@@ -294,19 +375,20 @@ module Hyperkit
       # @option options [Boolean] :stateful Whether to restore previously saved runtime state (default: <code>false</false>)
       # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
       # @option options [Fixnum] :timeout Time after which the operation is considered to have failed (default: no timeout)
+      # @return [Sawyer::Resource] Operation or result, depending value of <code>:sync</code> parameter and/or {Hyperkit::Client::auto_sync}
       #
       # @example Start container
-      #   Hyperkit.client.start_container("test")
+      #   Hyperkit.start_container("test")
       #
       # @example Start container and restore previously saved runtime state
       #   # Stop the container and save its runtime state
-      #   Hyperkit.client.stop_container("test", stateful: true)
+      #   Hyperkit.stop_container("test", stateful: true)
       #
       #   # Start the container and restore its runtime state
-      #   Hyperkit.client.start_container("test", stateful: true)
+      #   Hyperkit.start_container("test", stateful: true)
       #
       # @example Start container with a timeout
-      #   Hyperkit.client.start_container("test", timeout: 30)
+      #   Hyperkit.start_container("test", timeout: 30)
       def start_container(name, options={})
         opts = options.slice(:stateful, :timeout)
         response = put(container_state_path(name), opts.merge(action: "start")).metadata
@@ -323,19 +405,20 @@ module Hyperkit
       # @option options [Boolean] :stateful Whether to restore previously saved runtime state (default: <code>false</false>)
       # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
       # @option options [Fixnum] :timeout Time after which the operation is considered to have failed (default: no timeout)
+      # @return [Sawyer::Resource] Operation or result, depending value of <code>:sync</code> parameter and/or {Hyperkit::Client::auto_sync}
       #
       # @example Stop container
-      #   Hyperkit.client.stop_container("test")
+      #   Hyperkit.stop_container("test")
       #
       # @example Stop container and save its runtime state
       #   # Stop the container and save its runtime state
-      #   Hyperkit.client.stop_container("test", stateful: true)
+      #   Hyperkit.stop_container("test", stateful: true)
       #
       #   # Start the container and restore its runtime state
-      #   Hyperkit.client.start_container("test", stateful: true)
+      #   Hyperkit.start_container("test", stateful: true)
       #
       # @example Stop the container forcefully (i.e. kill it)
-      #   Hyperkit.client.stop_container("test", force: true)
+      #   Hyperkit.stop_container("test", force: true)
       def stop_container(name, options={})
         opts = options.slice(:force, :stateful, :timeout)
         response = put(container_state_path(name), opts.merge(action: "stop")).metadata
@@ -351,15 +434,16 @@ module Hyperkit
       # @option options [Boolean] :force Whether to force the operation by killing the container
       # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
       # @option options [Fixnum] :timeout Time after which the operation is considered to have failed (default: no timeout)
+      # @return [Sawyer::Resource] Operation or result, depending value of <code>:sync</code> parameter and/or {Hyperkit::Client::auto_sync}
       #
       # @example Restart container
-      #   Hyperkit.client.restart_container("test")
+      #   Hyperkit.restart_container("test")
       #
       # @example Restart container forcefully
-      #   Hyperkit.client.restart_container("test", force: true)
+      #   Hyperkit.restart_container("test", force: true)
       #
       # @example Restart container with timeout
-      #   Hyperkit.client.restart_container("test", timeout: 30)
+      #   Hyperkit.restart_container("test", timeout: 30)
       def restart_container(name, options={})
         opts = options.slice(:force, :timeout)
         response = put(container_state_path(name), opts.merge(action: "restart")).metadata
@@ -374,12 +458,13 @@ module Hyperkit
       # @param options [Hash] Additional data to be passed
       # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
       # @option options [Fixnum] :timeout Time after which the operation is considered to have failed (default: no timeout)
+      # @return [Sawyer::Resource] Operation or result, depending value of <code>:sync</code> parameter and/or {Hyperkit::Client::auto_sync}
       #
       # @example Suspend container
-      #   Hyperkit.client.freeze_container("test")
+      #   Hyperkit.freeze_container("test")
       #
       # @example Suspend container with timeout
-      #   Hyperkit.client.freeze_container("test", timeout: 30)
+      #   Hyperkit.freeze_container("test", timeout: 30)
       def freeze_container(name, options={})
         opts = options.slice(:timeout)
         response = put(container_state_path(name), opts.merge(action: "freeze")).metadata
@@ -397,12 +482,13 @@ module Hyperkit
       # @param options [Hash] Additional data to be passed
       # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
       # @option options [Fixnum] :timeout Time after which the operation is considered to have failed (default: no timeout)
+      # @return [Sawyer::Resource] Operation or result, depending value of <code>:sync</code> parameter and/or {Hyperkit::Client::auto_sync}
       #
       # @example Resume container
-      #   Hyperkit.client.unfreeze_container("test")
+      #   Hyperkit.unfreeze_container("test")
       #
       # @example Resume container with timeout
-      #   Hyperkit.client.unfreeze_container("test", timeout: 30)
+      #   Hyperkit.unfreeze_container("test", timeout: 30)
       def unfreeze_container(name, options={})
         opts = options.slice(:timeout)
         response = put(container_state_path(name), opts.merge(action: "unfreeze")).metadata
@@ -411,15 +497,21 @@ module Hyperkit
 
       alias_method :resume_container, :unfreeze_container
 
-      # Prepare to migrate a container or snapshot.  Generates source data to be passed to #migrate.
+      # @!endgroup
+
+      # @!group Migration
+
+      # Prepare to migrate a container or snapshot.  Generates source data to be passed to {#migrate}.
       #
       # Note that CRIU must be installed on the server to migrate a running container, or LXD will
       # return a 500 error.  On Ubuntu, you can install it with 
       # <code>sudo apt-get install criu</code>.
       #
       # @param name [String] Container name
+      # @return [Sawyer::Resource] Source data to be passed to {#migrate}
+      #
       # @example Retrieve migration source data for container "test"
-      #   Hyperkit.client.init_migration("test") #=> {
+      #   Hyperkit.init_migration("test") #=> {
       #     :architecture => "x86_64",
       #     :config => {
       #       :"volatile.base_image" => "b41f6b96f103335eafbf38ba65488eda66b05b08b590130e473803631d66ff38",
@@ -438,8 +530,9 @@ module Hyperkit
       #     },
       #     :certificate => "source server SSL certificate"
       #   }
+      #
       # @example Retrieve migration source data for snapshot "snap" of container "test"
-      #   Hyperkit.client.init_migration("test", "snap") #=> {
+      #   Hyperkit.init_migration("test", "snap") #=> {
       #     :architecture => "x86_64",
       #     :config => {
       #       :"volatile.apply_template" => "create",
@@ -499,7 +592,7 @@ module Hyperkit
       #
       # @async This method is asynchronous.  See {Hyperkit::Configurable#auto_sync} for more information.
       #
-      # @param source [Sawyer::Resource] Source data retrieve from the remote server with #init_migration
+      # @param source [Sawyer::Resource] Source data retrieve from the remote server with {#init_migration}
       # @param dest_name [String] Name of the new container
       # @param options [Hash] Additional data to be passed
       # @option options [String] :architecture Architecture of the container (e.g. <code>x86_64</code>).  By default, this will be obtained from the image metadata
@@ -509,26 +602,27 @@ module Hyperkit
       # @option options [Boolean] :move Whether the container is being moved (<code>true</code>) or copied (<code>false</code>).  Note that this does not actually delete the container from the remote LXD instance.  Specifying <code>move: true</code> prevents regenerating volatile data (such as a container's MAC addresses), while <code>move: false</code> will regenerate all of this data.  Defaults to <code>false</code> (a copy)
       # @option options [Array] :profiles List of profiles to be applied to the container (default: <code>[]</code>)
       # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
+      # @return [Sawyer::Resource] Operation or result, depending value of <code>:sync</code> parameter and/or {Hyperkit::Client::auto_sync}
       #
       # @example Migrate container from remote instance
       #   remote_lxd = Hyperkit::Client.new(api_endpoint: "remote.example.com")
       #   source_data = remote_lxd.init_migration("remote-container")
-      #   Hyperkit.client.migrate(source_data, "new-container")
+      #   Hyperkit.migrate(source_data, "new-container")
       #
       # @example Migrate container and do not regenerate volatile data (e.g. MAC addresses)
       #   remote_lxd = Hyperkit::Client.new(api_endpoint: "remote.example.com")
       #   source_data = remote_lxd.init_migration("remote-container")
-      #   Hyperkit.client.migrate(source_data, "new-container", move: true)
+      #   Hyperkit.migrate(source_data, "new-container", move: true)
       #
       # @example Migrate container and override its profiles
       #   remote_lxd = Hyperkit::Client.new(api_endpoint: "remote.example.com")
       #   source_data = remote_lxd.init_migration("remote-container")
-      #   Hyperkit.client.migrate(source_data, "new-container", profiles: %w[test-profile1 test-profile2])
+      #   Hyperkit.migrate(source_data, "new-container", profiles: %w[test-profile1 test-profile2])
       #
       # @example Migrate a snapshot
       #   remote_lxd = Hyperkit::Client.new(api_endpoint: "remote.example.com")
       #   source_data = remote_lxd.init_migration("remote-container", "remote-snapshot")
-      #   Hyperkit.client.migrate(source_data, "new-container", profiles: %w[test-profile1 test-profile2])
+      #   Hyperkit.migrate(source_data, "new-container", profiles: %w[test-profile1 test-profile2])
       def migrate(source, dest_name, options={})
 
         opts = {
@@ -581,12 +675,17 @@ module Hyperkit
         handle_async(response, options[:sync])
       end
 
+      # @!endgroup
+
+      # @!group Snapshots
+
       # List of snapshots for a container
       #
       # @param container [String] Container name
       # @return [Array<String>] An array of snapshot names
+      #
       # @example Get list of snapshots for container "test"
-      #   Hyperkit.client.snapshots("test") #=> ["snap1", "snap2", "snap3"]
+      #   Hyperkit.snapshots("test") #=> ["snap1", "snap2", "snap3"]
       def snapshots(container)
         response = get snapshots_path(container)
         response.metadata.map { |path| path.split('/').last }
@@ -599,7 +698,7 @@ module Hyperkit
       # @return [Sawyer::Resource] Snapshot information
       #
       # @example Get information about a snapshot
-      #   Hyperkit.client.snapshot("test-container", "test-snapshot") #=> {
+      #   Hyperkit.snapshot("test-container", "test-snapshot") #=> {
       #     :architecture => "x86_64",
       #     :config => {
       #       :"volatile.apply_template" => "create",
@@ -650,10 +749,13 @@ module Hyperkit
       # @param options [Hash] Additional data to be passed
       # @option options [Boolean] :stateful Whether to save runtime state for a running container (requires CRIU on the server; default: <code>false</false>)
       # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
+      # @return [Sawyer::Resource] Operation or result, depending value of <code>:sync</code> parameter and/or {Hyperkit::Client::auto_sync}
+      #
       # @example Create stateless snapshot for container 'test'
-      #   Hyperkit.client.create_snapshot("test", "snap1")
+      #   Hyperkit.create_snapshot("test", "snap1")
+      #
       # @example Create snapshot and save runtime state for running container 'test'
-      #   Hyperkit.client.create_snapshot("test", "snap1", stateful: true)
+      #   Hyperkit.create_snapshot("test", "snap1", stateful: true)
       def create_snapshot(container, snapshot, options={})
         opts = options.slice(:stateful)
         opts[:name] = snapshot
@@ -669,9 +771,10 @@ module Hyperkit
       # @param snapshot [String] Snapshot name
       # @param options [Hash] Additional data to be passed
       # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
+      # @return [Sawyer::Resource] Operation or result, depending value of <code>:sync</code> parameter and/or {Hyperkit::Client::auto_sync}
       #
       # @example Delete snapshot "snap" from container "test"
-      #   Hyperkit.client.delete_snapshot("test", "snap")
+      #   Hyperkit.delete_snapshot("test", "snap")
       #
       def delete_snapshot(container, snapshot, options={})
         response = delete(snapshot_path(container, snapshot)).metadata
@@ -687,9 +790,10 @@ module Hyperkit
       # @param new_name [String] New snapshot name
       # @param options [Hash] Additional data to be passed
       # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
+      # @return [Sawyer::Resource] Operation or result, depending value of <code>:sync</code> parameter and/or {Hyperkit::Client::auto_sync}
       #
       # @example Rename snapshot "test/snap1" to "snap2"
-      #   Hyperkit.client.rename_snapshot("test", "snap1", "snap2")
+      #   Hyperkit.rename_snapshot("test", "snap1", "snap2")
       def rename_snapshot(container, old_name, new_name, options={})
         response = post(snapshot_path(container, old_name), { "name": new_name }).metadata
         handle_async(response, options[:sync])
@@ -703,15 +807,20 @@ module Hyperkit
       # @param snapshot [String] Name of snapshot to restore
       # @param options [Hash] Additional data to be passed
       # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
+      # @return [Sawyer::Resource] Operation or result, depending value of <code>:sync</code> parameter and/or {Hyperkit::Client::auto_sync}
       #
       # @example Restore container "test" back to snapshot "snap1"
-      #   Hyperkit.client.restore_snapshot("test", "snap1")
+      #   Hyperkit.restore_snapshot("test", "snap1")
       def restore_snapshot(container, snapshot, options={})
         response = put(container_path(container), { "restore": snapshot }).metadata
         handle_async(response, options[:sync])
       end
 
       alias_method :revert_to_snapshot, :restore_snapshot
+
+      # @!endgroup
+
+      # @!group Files
 
       # Read the contents of a file in a container
       #
@@ -720,7 +829,7 @@ module Hyperkit
       # @return [String] The contents of the file
       #
       # @example Read the file /etc/hostname in container "test"
-      #   Hyperkit.client.read_file("test", "/etc/hostname") #=> "test-container.example.com"
+      #   Hyperkit.read_file("test", "/etc/hostname") #=> "test-container.example.com"
       def read_file(container, file)
         get(file_path(container, file), url_encode: false)
       end
@@ -731,10 +840,10 @@ module Hyperkit
       # @param container [String] Container name
       # @param source_file [String] Full path to a file within the container
       # @param dest_file [String] Full path of desired output file (will be created/overwritten)
-      # @return [String] Full path to the output file
+      # @return [String] Full path to the local output file
       #
       # @example Copy /etc/passwd in container "test" to the local file /tmp/passwd
-      #   Hyperkit.client.pull_file("test", "/etc/passwd", "/tmp/passwd") #=> "/tmp/passwd"
+      #   Hyperkit.pull_file("test", "/etc/passwd", "/tmp/passwd") #=> "/tmp/passwd"
 			def pull_file(container, source_file, dest_file)
 				contents = get(file_path(container, source_file), url_encode: false)
 				headers = last_response.headers
@@ -760,19 +869,20 @@ module Hyperkit
       # @option options [Fixnum] :gid Group to assign to the file
       # @option options [Fixnum] :mode File permissions (in octal) to assign to the file
       # @option options [Fixnum] :content Content to write to the file (if no block given)
-      # @yieldparam name [StringIO] IO to be used to write to the file from a block
+      # @yieldparam io [StringIO] IO to be used to write to the file from a block
+      # @return [Sawyer::Resource]
       #
       # @example Write string "hello" to /tmp/test.txt in container test-container
-      #   Hyperkit.client.write_file("test-container", "/tmp/test.txt", content: "hello")
+      #   Hyperkit.write_file("test-container", "/tmp/test.txt", content: "hello")
       #
       # @example Write to file using a block
-      #   Hyperkit.client.write_file("test-container", "/tmp/test.txt") do |f|
-      #     f.print "Hello "
-      #     f.puts "world"
+      #   Hyperkit.write_file("test-container", "/tmp/test.txt") do |io|
+      #     io.print "Hello "
+      #     io.puts "world"
       #   end
       #
       # @example Assign uid, gid, and mode to a file:
-      #   Hyperkit.client.write_file("test-container",
+      #   Hyperkit.write_file("test-container",
       #     "/tmp/test.txt",
       #     content: "hello",
       #     uid: 1000,
@@ -811,12 +921,13 @@ module Hyperkit
       # @option options [Fixnum] :uid Owner to assign to the file
       # @option options [Fixnum] :gid Group to assign to the file
       # @option options [Fixnum] :mode File permissions (in octal) to assign to the file
+      # @return [Sawyer::Resource]
       #
       # @example Copy /tmp/test.txt from the local system to /etc/passwd in the container
-      #   Hyperkit.client.push_file("/tmp/test.txt", "test-container", "/etc/passwd")
+      #   Hyperkit.push_file("/tmp/test.txt", "test-container", "/etc/passwd")
       #
       # @example Assign uid, gid, and mode to a file:
-      #   Hyperkit.client.push_file("/tmp/test.txt",
+      #   Hyperkit.push_file("/tmp/test.txt",
       #     "test-container",
       #     "/etc/passwd",
       #     uid: 1000,
@@ -831,12 +942,17 @@ module Hyperkit
 
       end
 
+      # @!endgroup
+
+      # @!group Logs
+
       # Retrieve a list of logs for a container
       #
       # @param container [String] Container name
       # @return [Array<String>] An array of log filenames 
+      #
       # @example Get list of logs for container "test-container"
-      #   Hyperkit.client.logs("test-container")
+      #   Hyperkit.logs("test-container")
       def logs(container)
         response = get(logs_path(container))
         response.metadata.map { |path| path.sub(logs_path(container) + '/', '') }
@@ -847,8 +963,9 @@ module Hyperkit
       # @param container [String] Container name
       # @param log [String] Log filename
       # @return [String] The contents of the log
+      #
       # @example Get log "lxc.log" for container "test-container"
-      #   Hyperkit.client.log("test-container", "lxc.log")
+      #   Hyperkit.log("test-container", "lxc.log")
       def log(container, log)
         get(log_path(container, log))
       end
@@ -857,62 +974,18 @@ module Hyperkit
       #
       # @param container [String] Container name
       # @param log [String] Filename of log to delete
+      #
       # @example Delete log "lxc.log" for container "test-container"
-      #   Hyperkit.client.delete_log("test-container", "lxc.log")
+      #   Hyperkit.delete_log("test-container", "lxc.log")
       def delete_log(container, log)
         delete(log_path(container, log))
       end
 
-      # Execute a command in a container
-      #
-      # @async This method is asynchronous.  See {Hyperkit::Configurable#auto_sync} for more information.
-      #
-      # @param container [String] Container name
-      # @param command [Array|String] Command to execute
-      # @param options [Hash] Additional data to be passed
-      # @option options [Hash] :environment Environment variables to set prior to command execution
-      # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
-      #
-      # @example Run a command (passed as a string) in container "test-container"
-      #   Hyperkit.client.execute_command("test-container", "echo 'hello world'")
-      #
-      # @example Run a command (passed as an array) in container "test-container"
-      #   Hyperkit.client.execute_command("test-container", 
-      #     ["bash", "-c", "echo 'hello world' > /tmp/test.txt"]
-      #   )
-      #
-      # @example Run a command and pass environment variables
-      #   Hyperkit.client.execute_command("test-container",
-      #     "/bin/sh -c 'echo \"$MYVAR\" $MYVAR2 > /tmp/test.txt'",
-      #     environment: {
-      #       MYVAR: "hello world",
-      #       MYVAR2: 42
-      #     }
-      #   )
-      def execute_command(container, command, options={})
-
-        opts = options.slice(:environment)
-        command = Shellwords.shellsplit(command) if command.is_a?(String)
-
-        # Stringify any environment values since LXD croaks on non-String values
-        if opts[:environment]
-          opts[:environment] = opts[:environment].inject({}){|h,(k,v)| h[k.to_s] = v.to_s; h}
-        end
-
-        response = post(File.join(container_path(container), "exec"), {
-          command: command,
-          environment: opts[:environment] || {},
-          "wait-for-websocket" => false,
-          interactive: false
-        }).metadata
-
-        handle_async(response, options[:sync])
-
-      end
-
-      alias_method :run_command, :execute_command
+      # @!endgroup
 
       private
+
+      REMOTE_IMAGE_ARGS = [:server, :protocol, :certificate, :secret]
 
       def log_path(container, log)
         File.join(logs_path(container), log)

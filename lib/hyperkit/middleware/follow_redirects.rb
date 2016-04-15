@@ -3,7 +3,6 @@ require 'set'
 
 module Hyperkit
  
-
   module Middleware
 
     # Public: Exception thrown when the maximum amount of requests is exceeded.

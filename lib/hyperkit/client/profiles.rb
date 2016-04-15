@@ -5,6 +5,9 @@ module Hyperkit
   class Client
 
     # Methods for the profiles API
+    # 
+    # @see Hyperkit::Client
+    # @see https://github.com/lxc/lxd/blob/master/specs/rest-api.md
     module Profiles
 
       # GET /profiles

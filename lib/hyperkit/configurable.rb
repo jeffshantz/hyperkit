@@ -19,6 +19,7 @@
 #                                                                              #
 ################################################################################
 
+
 module Hyperkit
 
   # Configuration options for {Client}, defaulting to values
@@ -26,28 +27,29 @@ module Hyperkit
   module Configurable
 
     # @!attribute api_endpoint
-    #   @return [String] Base URL for API requests. default: https://localhost:8443/
+    #   @return [String] the base URL for API requests (default: <code>https://localhost:8443/</code>)
     # @!attribute auto_sync
-    #   @return [String] Whether to automatically wait on asynchronous events. default: true
+    #   @return [String] whether to automatically wait on asynchronous events (default: <code>true</code>)
     # @!attribute client_cert
-    #   @return [String] Client certificate for authentication
+    #   @return [String] the client certificate used to authenticate to the LXD server
     # @!attribute client_key 
-    #   @return [String] Client key for authentication
+    #   @return [String] the client key used to authenticate to the LXD server
     # @!attribute default_media_type
-    #   @return [String] Configure preferred media type (for API versioning, for example)
+    #   @return [String] the preferred media type (for API versioning, for example)
     # @!attribute middleware
     #   @see https://github.com/lostisland/faraday
-    #   @return [Faraday::Builder or Faraday::RackBuilder] Configure middleware for Faraday
+    #   @return [Faraday::Builder or Faraday::RackBuilder] middleware for Faraday
     # @!attribute proxy
     #   @see https://github.com/lostisland/faraday
-    #   @return [String] URI for proxy server
+    #   @return [String] the URI of a proxy server used to connect to the LXD server
     # @!attribute user_agent
-    #   @return [String] Configure User-Agent header for requests.
+    #   @return [String] the <code>User-Agent</code> header used for requests made to the LXD server
     # @!attribute verify_ssl
-    #   @return [Boolean] Whether or not to verify peer SSL certificate
+    #   @return [Boolean] whether or not to verify the LXD server's SSL certificate
 
     attr_accessor :auto_sync, :client_cert, :client_key, :default_media_type,
                   :middleware, :proxy, :user_agent, :verify_ssl
+
     attr_writer :api_endpoint
 
     class << self
@@ -67,6 +69,7 @@ module Hyperkit
           :verify_ssl
         ]
       end
+
     end
 
     # Set configuration options using a block
@@ -81,6 +84,7 @@ module Hyperkit
       end
       self
     end
+
     alias setup reset!
 
     # Compares client options to a Hash of requested options
@@ -102,4 +106,5 @@ module Hyperkit
     end
 
   end
+
 end

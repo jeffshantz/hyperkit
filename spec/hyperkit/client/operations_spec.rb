@@ -4,6 +4,7 @@ require 'time'
 describe Hyperkit::Client::Operations do
 
   let(:client) { lxd } 
+
   let(:operation) {
     {
       id: "b8d84888-1dc2-44fd-b386-7f679e171ba5",
@@ -79,21 +80,14 @@ describe Hyperkit::Client::Operations do
 
     it "retrieves an operation" do
       stub_get("/1.0/operations/b8d84888-1dc2-44fd-b386-7f679e171ba5").
-        to_return(ok_response.merge(body: operation.to_json))
+        to_return(ok_response.merge(body: { metadata: operation }.to_json))
 
       op = client.operation("b8d84888-1dc2-44fd-b386-7f679e171ba5")
+
       expect(op.to_h).to eq(operation.merge(
         created_at: Time.parse(operation[:created_at]),
         updated_at: Time.parse(operation[:updated_at]))
       )
-    end
-
-    it "makes the correct API call" do
-      request = stub_get("/1.0/operations/b8d84888-1dc2-44fd-b386-7f679e171ba5").
-        to_return(ok_response.merge(body: operation.to_json))
-
-      op = client.operation("b8d84888-1dc2-44fd-b386-7f679e171ba5")
-      assert_requested request
     end
 
   end
@@ -132,6 +126,11 @@ describe Hyperkit::Client::Operations do
         to_return(accepted_response)
       client.cancel_operation("b8d84888-1dc2-44fd-b386-7f679e171ba5")
       assert_requested request
+    end
+
+    it "cancels a running operation", :image do
+      operation = client.create_image_secret(@fingerprint)
+      expect { client.cancel_operation(operation.id) }.to_not raise_error
     end
 
   end
