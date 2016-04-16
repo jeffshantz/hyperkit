@@ -1,6 +1,6 @@
 # Hyperkit
 
-[![Gem Version](https://badge.fury.io/rb/hyperkit.svg)](https://badge.fury.io/rb/hyperkit) [![Build Status](https://travis-ci.org/jeffshantz/hyperkit.svg?branch=master)](https://travis-ci.org/jeffshantz/hyperkit) [![Coverage Status](https://coveralls.io/repos/github/jeffshantz/hyperkit/badge.svg?branch=master)](https://coveralls.io/github/jeffshantz/hyperkit?branch=master)
+[![Gem Version](https://badge.fury.io/rb/hyperkit.svg)](https://badge.fury.io/rb/hyperkit) [![Yard Docs](http://img.shields.io/badge/yard-docs-blue.svg)](http://rubydoc.info/github/jeffshantz/hyperkit/master) [![Build Status](https://travis-ci.org/jeffshantz/hyperkit.svg?branch=master)](https://travis-ci.org/jeffshantz/hyperkit) [![Coverage Status](https://coveralls.io/repos/github/jeffshantz/hyperkit/badge.svg?branch=master)](https://coveralls.io/github/jeffshantz/hyperkit?branch=master)
 
 Hyperkit is a flat API wrapper for LXD, the next-generation hypervisor.  It is
 shamelessly based on the design of Octokit, the popular wrapper for the GitHub
@@ -58,12 +58,12 @@ lxd.migrate_container(source, "migrated-container")
 
 Each method in the API documentation has at least one example of its usage.   Please see the documentation for the following modules:
 
-* [Certificates]()
-* [Containers]()
-* [Images]()
-* [Networks]()
-* [Operations]()
-* [Profiles]()
+* [Certificates](http://www.rubydoc.info/github/jeffshantz/hyperkit/master/Hyperkit/Client/Certificates)
+* [Containers](http://www.rubydoc.info/github/jeffshantz/hyperkit/master/Hyperkit/Client/Containers)
+* [Images](http://www.rubydoc.info/github/jeffshantz/hyperkit/master/Hyperkit/Client/Images)
+* [Networks](http://www.rubydoc.info/github/jeffshantz/hyperkit/master/Hyperkit/Client/Networks)
+* [Operations](http://www.rubydoc.info/github/jeffshantz/hyperkit/master/Hyperkit/Client/Operations)
+* [Profiles](http://www.rubydoc.info/github/jeffshantz/hyperkit/master/Hyperkit/Client/Profiles)
 
 ## Requirements
 
@@ -100,7 +100,7 @@ client = Octokit::Client.new(api_endpoint: 'https://lxd.example.com:8443', verif
 client.create_container("test-container", alias: "ubuntu/trusty/amd64")
 ```
 
-[API methods]: http://TODO
+[API methods]: http://www.rubydoc.info/list/github/jeffshantz/hyperkit/master/method
 
 ## Authentication
 
@@ -168,7 +168,7 @@ lxd-server$ lxc config trust add my-new-cert.crt
 ## API coverage
 
 Hyperkit supports the entirety of [version 1.0 of the LXD
-API](https://github.com/lxc/lxd/blob/master/specs/rest-api.md), but does not
+API](https://github.com/lxc/lxd/blob/master/doc/rest-api.md), but does not
 support any of the Websocket API calls (e.g. `/1.0/events`).
 
 ## Asynchronous Operations
@@ -297,6 +297,8 @@ run and pass on that implementation. When something breaks on your
 implementation, you will be responsible for providing patches in a timely
 fashion. If critical issues for a particular implementation exist at the time
 of a major release, support for that Ruby version may be dropped.
+
+[travis]: https://travis-ci.org/jeffshantz/hyperkit
 
 ## Versioning
 
