@@ -40,6 +40,42 @@ describe Hyperkit::Client::Profiles do
       expect(client.profiles).to include("test-profile")
     end
 
+    it "accepts a config hash", :profile, :skip_create do
+      client.create_profile("test-profile", config: {
+        "limits.memory" => "2GB"
+      })
+      profile = client.profile("test-profile")
+      expect(profile.config["limits.memory"]).to eq("2GB")
+    end
+
+    it "accepts non-String config values", :profile, :skip_create do
+      client.create_profile("test-profile", config: {
+        "limits.cpu" => 2
+      })
+      profile = client.profile("test-profile")
+      expect(profile.config["limits.cpu"]).to eq("2")
+    end
+
+    it "accepts a device hash", :profile, :skip_create do
+      client.create_profile("test-profile", devices: {
+        "kvm": {
+          "type": "unix-char",
+          "path": "/dev/kvm"
+        }
+      })
+
+			profile = client.profile("test-profile")
+
+			expect(profile.devices.kvm.path).to eq("/dev/kvm")
+			expect(profile.devices.kvm.type).to eq("unix-char")
+    end
+
+    it "accepts a description", :profile, :skip_create do
+			client.create_profile("test-profile", description: "hello")
+			profile = client.profile("test-profile")
+      expect(profile.description).to eq("hello")
+    end
+
     it "makes the correct API call" do
       request = stub_post("/1.0/profiles").to_return(ok_response)
       client.create_profile("test-profile")
@@ -120,6 +156,14 @@ describe Hyperkit::Client::Profiles do
       expect(profile.devices.eth0.nictype).to eq("bridged")
       expect(profile.devices.eth0.parent).to eq("br-int")
       expect(profile.devices.eth0.type).to eq("nic")
+    end
+
+    it "accepts non-String config values", :profile, profile_options: @profile_data do
+      client.update_profile("test-profile", config: {
+        "limits.cpu" => 2
+      })
+      profile = client.profile("test-profile")
+      expect(profile.config["limits.cpu"]).to eq("2")
     end
 
     it "makes the correct API call" do
