@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["hyperkit@jeffshantz.com"]
 
   spec.summary       = %q{Hyperkit is a flat API wrapper for LXD, the next-generation hypervisor}
-  spec.homepage      = "https://github.com/jeffshantz/hyperkit"
+  spec.homepage      = "http://jeffshantz.github.io/hyperkit"
   spec.license       = "MIT"
 
   # Prevent pushing this gem to RubyGems.org by setting 'allowed_push_host', or
