@@ -209,7 +209,7 @@ module Hyperkit
           raise Hyperkit::ImageIdentifierRequired.new("Please specify either :alias or :fingerprint")
         end
 
-        opts[:properties] = stringify_properties(options[:properties]) if options[:properties]
+        opts[:properties] = stringify_hash(options[:properties]) if options[:properties]
 
         if options[:alias]
           opts[:source][:alias] = options[:alias]
@@ -277,7 +277,7 @@ module Hyperkit
       def create_image_from_url(url, options={})
 
         opts = options.slice(:filename, :public)
-        opts[:properties] = stringify_properties(options[:properties]) if options[:properties]
+        opts[:properties] = stringify_hash(options[:properties]) if options[:properties]
 				opts[:source] = {
 					type: "url",
 					url: url
@@ -317,7 +317,7 @@ module Hyperkit
       def create_image_from_container(name, options={})
 
         opts = options.slice(:filename, :public, :description)
-        opts[:properties] = stringify_properties(options[:properties]) if options[:properties]
+        opts[:properties] = stringify_hash(options[:properties]) if options[:properties]
 				opts[:source] = {
 					type: "container",
 					name: name
@@ -358,7 +358,7 @@ module Hyperkit
       def create_image_from_snapshot(container, snapshot, options={})
 
         opts = options.slice(:filename, :public, :description)
-        opts[:properties] = stringify_properties(options[:properties]) if options[:properties]
+        opts[:properties] = stringify_hash(options[:properties]) if options[:properties]
 				opts[:source] = {
 					type: "snapshot",
 					name: "#{container}/#{snapshot}"
@@ -424,7 +424,7 @@ module Hyperkit
       #   )
       def update_image(fingerprint, options={})
         opts = options.slice(:public, :auto_update)
-        opts[:properties] = stringify_properties(options[:properties]) if options[:properties]
+        opts[:properties] = stringify_hash(options[:properties]) if options[:properties]
 
         put(image_path(fingerprint), opts).metadata
       end
@@ -658,12 +658,6 @@ module Hyperkit
         "/1.0/images"
       end
 
-      # Stringify any property values.  LXD returns an error if 
-      # integers are passed, for example
-			def stringify_properties(properties)
-          properties.inject({}){|h,(k,v)| h[k.to_s] = v.to_s; h}
-			end
- 
     end
 
   end

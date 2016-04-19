@@ -22,6 +22,7 @@
 
 require 'hyperkit/configurable'
 require 'hyperkit/connection'
+require 'hyperkit/utility'
 require 'hyperkit/client/certificates'
 require 'hyperkit/client/containers'
 require 'hyperkit/client/images'
@@ -42,6 +43,7 @@ module Hyperkit
 
     include Hyperkit::Configurable
     include Hyperkit::Connection
+    include Hyperkit::Utility
     include Hyperkit::Client::Certificates
     include Hyperkit::Client::Containers
     include Hyperkit::Client::Images

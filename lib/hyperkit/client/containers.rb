@@ -248,11 +248,7 @@ module Hyperkit
       def update_container(name, config, options={})
 
         config = config.to_hash
- 
-        # Stringify values in the config hash, since LXD chokes on non-String values
-        if config[:config]
-          config[:config] = config[:config].inject({}){|h,(k,v)| h[k.to_s] = v.to_s; h}
-        end
+        config[:config] = stringify_hash(config[:config]) if config[:config]
 
         response = put(container_path(name), config).metadata
         handle_async(response, options[:sync])
@@ -311,10 +307,7 @@ module Hyperkit
         opts = options.slice(:environment)
         command = Shellwords.shellsplit(command) if command.is_a?(String)
 
-        # Stringify any environment values since LXD croaks on non-String values
-        if opts[:environment]
-          opts[:environment] = opts[:environment].inject({}){|h,(k,v)| h[k.to_s] = v.to_s; h}
-        end
+        opts[:environment] = stringify_hash(opts[:environment]) if opts[:environment]
 
         response = post(File.join(container_path(container), "exec"), {
           command: command,
@@ -1023,10 +1016,7 @@ module Hyperkit
         opts = options.slice(:architecture, :profiles, :ephemeral, :config).
                        merge({ name: name })
       
-        # Stringify any config values since LXD croaks on non-String values
-        if opts[:config]
-          opts[:config] = opts[:config].inject({}){|h,(k,v)| h[k.to_s] = v.to_s; h}
-        end
+        opts[:config] = stringify_hash(opts[:config]) if opts[:config]
 
         opts
       end
