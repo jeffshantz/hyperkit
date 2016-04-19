@@ -162,7 +162,7 @@ Alternatively, you can simply copy your certificate file to the LXD server and
 use the `lxc` tool to trust it:
 
 ```
-lxd-server$ lxc config trust add my-new-cert.crt
+$ lxc config trust add my-new-cert.crt
 ```
 
 ## API coverage
