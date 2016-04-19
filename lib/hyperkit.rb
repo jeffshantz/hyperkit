@@ -25,7 +25,7 @@ require 'hyperkit/default'
 
 # Ruby toolkit for the LXD API.
 # LXD - the next-generation container hypervisor for Linux
-module Hyperkit 
+module Hyperkit
 
   class << self
     include Hyperkit::Configurable

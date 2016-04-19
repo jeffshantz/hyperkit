@@ -3,7 +3,7 @@ module Hyperkit
   class Client
 
     # Methods for the images API
-    # 
+    #
     # @see Hyperkit::Client
     # @see https://github.com/lxc/lxd/blob/master/specs/rest-api.md
     module Images
@@ -14,10 +14,10 @@ module Hyperkit
       #
       # @return [Array<String>] An array of image fingerprints
       #
-      # @example Get list of images 
+      # @example Get list of images
       #   Hyperkit.images #=> ["54c8caac1f61901ed86c68f24af5f5d3672bdc62c71d04f06df3a59e95684473",
       #                               "97d97a3d1d053840ca19c86cdd0596cf1be060c5157d31407f2a4f9f350c78cc"]
-      def images 
+      def images
         response = get(images_path)
         response.metadata.map { |path| path.split('/').last }
       end
@@ -171,15 +171,15 @@ module Hyperkit
       # @return [Sawyer::Resource] Operation or result, depending value of <code>:sync</code> parameter and/or {Hyperkit::Client::auto_sync}
       #
       # @example Import image by alias
-      #   Hyperkit.create_image_from_remote("https://images.linuxcontainers.org:8443", 
+      #   Hyperkit.create_image_from_remote("https://images.linuxcontainers.org:8443",
       #     alias: "ubuntu/xenial/amd64")
-      #     
+      #
       # @example Import image by fingerprint
-      #   Hyperkit.create_image_from_remote("https://images.linuxcontainers.org:8443", 
+      #   Hyperkit.create_image_from_remote("https://images.linuxcontainers.org:8443",
       #     fingerprint: "b1cf3d836196c316897d39872ff25e2d912ea933207b0c591334a67b290a5f1b")
       #
       # @example Import image and automatically update it when it is updated on the remote server
-      #   Hyperkit.create_image_from_remote("https://images.linuxcontainers.org:8443", 
+      #   Hyperkit.create_image_from_remote("https://images.linuxcontainers.org:8443",
       #     alias: "ubuntu/xenial/amd64",
       #     auto_update: true)
       #
@@ -200,7 +200,7 @@ module Hyperkit
 
         opts[:source] = options.slice(:secret, :protocol, :certificate)
         opts[:source].merge!({
-          type: "image", 
+          type: "image",
           mode: "pull",
           server: server
         })
@@ -218,12 +218,12 @@ module Hyperkit
         end
 
         response = post(images_path, opts).metadata
-				handle_async(response, options[:sync])
+        handle_async(response, options[:sync])
       end
 
       # Import an image from a remote URL.
       #
-      # Note: the URL passed to this method is <b>not</b> the URL of a tarball.  
+      # Note: the URL passed to this method is <b>not</b> the URL of a tarball.
       # Instead, the URL must return the following headers:
       #
       # * <code>LXD-Image-URL</code> - URL of the image tarball
@@ -278,10 +278,10 @@ module Hyperkit
 
         opts = options.slice(:filename, :public)
         opts[:properties] = stringify_hash(options[:properties]) if options[:properties]
-				opts[:source] = {
-					type: "url",
-					url: url
-				}
+        opts[:source] = {
+          type: "url",
+          url: url
+        }
 
         response = post(images_path, opts).metadata
         handle_async(response, options[:sync])
@@ -318,13 +318,13 @@ module Hyperkit
 
         opts = options.slice(:filename, :public, :description)
         opts[:properties] = stringify_hash(options[:properties]) if options[:properties]
-				opts[:source] = {
-					type: "container",
-					name: name
-				}
+        opts[:source] = {
+          type: "container",
+          name: name
+        }
 
         response = post(images_path, opts).metadata
-				handle_async(response, options[:sync])
+        handle_async(response, options[:sync])
       end
 
       # Create an image from an existing snapshot.
@@ -359,13 +359,13 @@ module Hyperkit
 
         opts = options.slice(:filename, :public, :description)
         opts[:properties] = stringify_hash(options[:properties]) if options[:properties]
-				opts[:source] = {
-					type: "snapshot",
-					name: "#{container}/#{snapshot}"
-				}
+        opts[:source] = {
+          type: "snapshot",
+          name: "#{container}/#{snapshot}"
+        }
 
         response = post(images_path, opts).metadata
-				handle_async(response, options[:sync])
+        handle_async(response, options[:sync])
       end
 
       # Delete an image
@@ -385,7 +385,7 @@ module Hyperkit
       #   Hyperkit.delete_image("b41")
       def delete_image(fingerprint, options={})
         response = delete(image_path(fingerprint)).metadata
-				handle_async(response, options[:sync])
+        handle_async(response, options[:sync])
       end
 
       # @!endgroup
@@ -404,7 +404,7 @@ module Hyperkit
       # @example Set image to be publicly-accessible
       #   Hyperkit.update_image("b1cf3d836196c316897d39872ff25e2d912ea933207b0c591334a67b290a5f1b",
       #     public: true)
-      #     
+      #
       # @example Overwrite image properties (removes all existing properties, sets "hello" property to "world")
       #   Hyperkit.update_image("b1cf3d836196c316897d39872ff25e2d912ea933207b0c591334a67b290a5f1b",
       #     properties: {
@@ -428,11 +428,11 @@ module Hyperkit
 
         put(image_path(fingerprint), opts).metadata
       end
- 
-      # Generate a secret for an image that can be used by an untrusted client 
+
+      # Generate a secret for an image that can be used by an untrusted client
       # to retrieve information on and/or export a private image.
       #
-      # The secret is automatically invalidated 5 seconds after first using it 
+      # The secret is automatically invalidated 5 seconds after first using it
       # (e.g. after calling Hyperkit.image(fingerprint, secret: "...").
       # This allows one to both retrieve the image information and then export it
       # with the same secret.
@@ -497,7 +497,7 @@ module Hyperkit
       #
       # @example Export private image via secret (created by {#create_image_secret})
       #   image = Hyperkit.image_by_alias("busybox/default/amd64")
-      #   Hyperkit.export_image(image.fingerprint, 
+      #   Hyperkit.export_image(image.fingerprint,
       #     "/tmp", secret: "secret-issued-by-create_image_secret") => "/tmp/busybox-v1.21.1-lxc.tar.xz"
       def export_image(fingerprint, output_dir, options={})
 
@@ -540,7 +540,7 @@ module Hyperkit
       #     "ubuntu/xenial/ppc64el",
       #     "ubuntu/xenial/s390x/default",
       #     "ubuntu/xenial/s390x"
-      #   ] 
+      #   ]
       def image_aliases
         response = get(image_aliases_path)
         response.metadata.map { |path| path.sub("#{image_aliases_path}/","") }
@@ -560,7 +560,7 @@ module Hyperkit
       def image_alias(alias_name)
         get(image_alias_path(alias_name)).metadata
       end
- 
+
       # Assign an alias for an image
       #
       # @param fingerprint [String] Fingerprint of the image

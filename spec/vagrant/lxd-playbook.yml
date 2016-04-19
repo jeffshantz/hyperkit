@@ -21,10 +21,10 @@
 
     - name: add LXD PPA
       apt_repository: repo='ppa:ubuntu-lxc/lxd-stable'
-    
+
     - name: update packages
       apt: update_cache=yes
-    
+
     - name: install language-pack-en
       package: name=language-pack-en state=present
 

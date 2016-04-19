@@ -43,7 +43,7 @@ module Hyperkit
       err
 
     end
-  
+
     def self.from_async_operation(response)
 
       return nil if response.nil? || response[:body].empty?
@@ -106,15 +106,15 @@ module Hyperkit
     end
 
     def self.error_for_500(response)
-			
+
       if response.body =~ /open: no such file or directory/i
         Hyperkit::NotFound
       elsif response.body =~ /open: is a directory/i
         Hyperkit::BadRequest
-			else
+      else
         Hyperkit::InternalServerError
       end
-     
+
     end
 
     private
@@ -146,7 +146,7 @@ module Hyperkit
 
     def response_error
       err = nil
-      
+
       if data.is_a?(Hash) && data[:error]
         err = data[:error]
       elsif data.is_a?(Hash) && data[:metadata]
@@ -247,7 +247,7 @@ module Hyperkit
   # none is provided
   class ImageIdentifierRequired < StandardError; end
 
-  # Raised when a method requires attributes of an alias to be 
+  # Raised when a method requires attributes of an alias to be
   # passed (e.g. description, traget), but none is provided
   class AliasAttributesRequired < StandardError; end
 

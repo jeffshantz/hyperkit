@@ -6,7 +6,7 @@ module Hyperkit
   class Client
 
     # Methods for the containers API
-    # 
+    #
     # @see Hyperkit::Client
     # @see https://github.com/lxc/lxd/blob/master/specs/rest-api.md
     module Containers
@@ -198,7 +198,7 @@ module Hyperkit
 
         response = post(containers_path, opts).metadata
         handle_async(response, options[:sync])
-      
+
       end
 
       # @!endgroup
@@ -233,7 +233,7 @@ module Hyperkit
       #   container = Hyperkit.container("test-container")
       #   container.ephemeral = true
       #   Hyperkit.update_container("test-container", container)
-      #   
+      #
       # @example Change container's AppArmor profile to 'unconfined'.
       #   container = Hyperkit.container("test-container")
       #
@@ -290,7 +290,7 @@ module Hyperkit
       #   Hyperkit.execute_command("test-container", "echo 'hello world'")
       #
       # @example Run a command (passed as an array) in container "test-container"
-      #   Hyperkit.execute_command("test-container", 
+      #   Hyperkit.execute_command("test-container",
       #     ["bash", "-c", "echo 'hello world' > /tmp/test.txt"]
       #   )
       #
@@ -497,7 +497,7 @@ module Hyperkit
       # Prepare to migrate a container or snapshot.  Generates source data to be passed to {#migrate}.
       #
       # Note that CRIU must be installed on the server to migrate a running container, or LXD will
-      # return a 500 error.  On Ubuntu, you can install it with 
+      # return a 500 error.  On Ubuntu, you can install it with
       # <code>sudo apt-get install criu</code>.
       #
       # @param name [String] Container name
@@ -576,7 +576,7 @@ module Hyperkit
       # Migrate a remote container or snapshot to the server
       #
       # Note that CRIU must be installed on the server to migrate a running container, or LXD will
-      # return a 500 error.  On Ubuntu, you can install it with 
+      # return a 500 error.  On Ubuntu, you can install it with
       # <code>sudo apt-get install criu</code>.
       #
       # Also note that, unless overridden with the <code>profiles</code> parameter, if the source
@@ -634,7 +634,7 @@ module Hyperkit
           opts["base-image"] = source.config["volatile.base_image"]
           opts[:config] = options[:config] || source.config.to_hash
 
-          # If we're only copying the container, and configuration was explicitly 
+          # If we're only copying the container, and configuration was explicitly
           # overridden, then remove the volatile entries
           if ! options[:move] && ! options.has_key?(:config)
             opts[:config].delete_if { |k,v| k.to_s.start_with?("volatile") }
@@ -655,7 +655,7 @@ module Hyperkit
           else
             raise Hyperkit::MissingProfiles.new("Not all profiles applied to source container exist on the target LXD instance")
           end
-          
+
         end
 
         if options.has_key?(:ephemeral)
@@ -728,11 +728,11 @@ module Hyperkit
 
       # Create a snapshot of a container
       #
-      # If <code>stateful: true</code> is passed when creating a snapshot of a 
+      # If <code>stateful: true</code> is passed when creating a snapshot of a
       # running container, the container's runtime state will be stored in the
-      # snapshot.  Note that CRIU must be installed on the server to create a 
+      # snapshot.  Note that CRIU must be installed on the server to create a
       # stateful snapshot, or LXD will return a 500 error.  On Ubuntu, you can
-      # install it with 
+      # install it with
       # <code>sudo apt-get install criu</code>.
       #
       # @async This method is asynchronous.  See {Hyperkit::Configurable#auto_sync} for more information.
@@ -837,21 +837,21 @@ module Hyperkit
       #
       # @example Copy /etc/passwd in container "test" to the local file /tmp/passwd
       #   Hyperkit.pull_file("test", "/etc/passwd", "/tmp/passwd") #=> "/tmp/passwd"
-			def pull_file(container, source_file, dest_file)
-				contents = get(file_path(container, source_file), url_encode: false)
-				headers = last_response.headers
+      def pull_file(container, source_file, dest_file)
+        contents = get(file_path(container, source_file), url_encode: false)
+        headers = last_response.headers
 
-				File.open(dest_file, "wb") do |f|
-					f.write(contents)
-				end
+        File.open(dest_file, "wb") do |f|
+          f.write(contents)
+        end
 
-				if headers["x-lxd-mode"]
-					File.chmod(headers["x-lxd-mode"].to_i(8), dest_file)
-				end
+        if headers["x-lxd-mode"]
+          File.chmod(headers["x-lxd-mode"].to_i(8), dest_file)
+        end
 
-				dest_file
+        dest_file
 
-			end
+      end
 
       # Write to a file in a container
       #
@@ -889,14 +889,14 @@ module Hyperkit
         headers["X-LXD-gid"] = options[:gid].to_s if options[:gid]
         headers["X-LXD-mode"] = options[:mode].to_s(8).rjust(4, "0") if options[:mode]
 
-				if ! block_given?
-					content = options[:content].to_s
-				else
-					io = StringIO.new
-					yield io
-					io.rewind
-					content = io.read
-				end
+        if ! block_given?
+          content = options[:content].to_s
+        else
+          io = StringIO.new
+          yield io
+          io.rewind
+          content = io.read
+        end
 
         post(file_path(container, dest_file), {
           raw_body: content,
@@ -942,7 +942,7 @@ module Hyperkit
       # Retrieve a list of logs for a container
       #
       # @param container [String] Container name
-      # @return [Array<String>] An array of log filenames 
+      # @return [Array<String>] An array of log filenames
       #
       # @example Get list of logs for container "test-container"
       #   Hyperkit.logs("test-container")
@@ -1015,7 +1015,7 @@ module Hyperkit
       def extract_container_options(name, options)
         opts = options.slice(:architecture, :profiles, :ephemeral, :config).
                        merge({ name: name })
-      
+
         opts[:config] = stringify_hash(opts[:config]) if opts[:config]
 
         opts
@@ -1082,7 +1082,7 @@ module Hyperkit
         opts
 
       end
- 
+
     end
 
   end

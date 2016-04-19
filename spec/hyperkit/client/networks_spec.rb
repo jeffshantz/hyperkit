@@ -19,9 +19,9 @@ describe Hyperkit::Client::Networks do
     it "returns only the network names and not their paths" do
 
       body = { metadata: [
-				"/1.0/networks/eth0",
+        "/1.0/networks/eth0",
         "/1.0/networks/br-ext"
-			]}
+      ]}
 
       stub_get("/1.0/networks").
         to_return(ok_response.merge(body: body.to_json))
@@ -43,7 +43,7 @@ describe Hyperkit::Client::Networks do
     end
 
     it "makes the correct API call" do
-			request = stub_get("/1.0/networks/lo").
+      request = stub_get("/1.0/networks/lo").
         to_return(ok_response)
 
       client.network("lo")

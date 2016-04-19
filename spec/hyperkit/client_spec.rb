@@ -455,18 +455,18 @@ describe Hyperkit::Client do
         },
         :body => {
           metadata: {
-			      id: "e81ee5e8-6cce-46fd-b010-2c595ca66ed2",
-		 	      class: "task",
-		 	      created_at: Time.parse("2016-03-21 11:00:21 -0400"),
-		 	      updated_at: Time.parse("2016-03-21 11:00:21 -0400"),
-		 	      status: "Failure",
-		 	      status_code: 400,
-		 	      resources: nil,
-		 	      metadata: nil,
-		 	      may_cancel: false,
-		 	      err:
-		        "The image already exists: c22e4941ad01ef4b5e69908b7de21105e06b8ac7a31e1ccd153826a3b15ee1ba"
-		      }
+            id: "e81ee5e8-6cce-46fd-b010-2c595ca66ed2",
+             class: "task",
+             created_at: Time.parse("2016-03-21 11:00:21 -0400"),
+             updated_at: Time.parse("2016-03-21 11:00:21 -0400"),
+             status: "Failure",
+             status_code: 400,
+             resources: nil,
+             metadata: nil,
+             may_cancel: false,
+             err:
+            "The image already exists: c22e4941ad01ef4b5e69908b7de21105e06b8ac7a31e1ccd153826a3b15ee1ba"
+          }
         }.to_json
       begin
         Hyperkit.get('/boom')

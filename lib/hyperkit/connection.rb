@@ -166,9 +166,9 @@ module Hyperkit
       if client_cert && File.exist?(client_cert)
         conn_opts[:ssl][:client_cert] = OpenSSL::X509::Certificate.new(File.read(client_cert))
       end
-      
+
       if client_key && File.exist?(client_key)
-        conn_opts[:ssl][:client_key] = OpenSSL::PKey::RSA.new(File.read(client_key)) 
+        conn_opts[:ssl][:client_key] = OpenSSL::PKey::RSA.new(File.read(client_key))
       end
 
       opts[:faraday] = Faraday.new(conn_opts)

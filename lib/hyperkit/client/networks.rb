@@ -3,7 +3,7 @@ module Hyperkit
   class Client
 
     # Methods for the networks API
-    # 
+    #
     # @see Hyperkit::Client
     # @see https://github.com/lxc/lxd/blob/master/specs/rest-api.md
     module Networks
@@ -38,7 +38,7 @@ module Hyperkit
       def networks_path
         "/1.0/networks"
       end
- 
+
     end
 
   end

@@ -44,7 +44,7 @@ Dir["./spec/support/**/*.rb"].sort.each { |f| require f}
 
 RSpec.configure do |config|
 
-	config.filter_run :focus => true
+  config.filter_run :focus => true
   config.run_all_when_everything_filtered = true
   config.raise_errors_for_deprecations!
   config.before(:each) do
@@ -52,22 +52,6 @@ RSpec.configure do |config|
     Hyperkit.api_endpoint = 'https://192.168.103.101:8443'
     Hyperkit.verify_ssl = false
   end
-
-  #config.around(:each) do |example|
-  #  example.run
-  #  containers = client.containers
-  #  profiles = client.profiles
-  #  images = client.images
-
-  #  if containers.sort != ["imaging", "lxd2"]
-  #    raise "EXTRA CONTAINER"
-  #  elsif profiles.sort != ["default", "docker", "host-mgmt", "loopback-access", "migratable", "unconfined"]
-  #    raise "EXTRA PROFILE"
-  #  elsif images != []
-  #    raise "EXTRA IMAGE"
-  #  end
-
-  #end
 
   config.before(:each, image: true) do |example|
     if ! example.metadata[:skip_create]
@@ -78,7 +62,7 @@ RSpec.configure do |config|
         options[:public] = example.metadata[:public]
       end
 
-		  @fingerprint = create_test_image("busybox/default", options)
+      @fingerprint = create_test_image("busybox/default", options)
     end
   end
 
@@ -90,13 +74,13 @@ RSpec.configure do |config|
 
   config.before(:each, remote_image: true) do |example|
 
-		options = {
-			public: true
-		}
+    options = {
+      public: true
+    }
 
-		if example.metadata.has_key?(:remote_image_options)
-			options = options.merge(:remote_image_options)
-		end
+    if example.metadata.has_key?(:remote_image_options)
+      options = options.merge(:remote_image_options)
+    end
 
     create_remote_test_image(options)
   end
@@ -110,7 +94,7 @@ RSpec.configure do |config|
     if example.metadata[:skip_create]
       @test_container_name = "test-container"
     else
-		  @test_container_name = create_test_container
+      @test_container_name = create_test_container
 
       if example.metadata[:running] || example.metadata[:frozen]
         client.start_container(@test_container_name, sync: true)
@@ -139,7 +123,7 @@ RSpec.configure do |config|
         client.stop_container(@test_container_name, force: true, sync: true)
       end
 
-	   delete_test_container(@test_container_name, image: example.metadata[:delete_image])
+     delete_test_container(@test_container_name, image: example.metadata[:delete_image])
 
     end
 
@@ -184,7 +168,7 @@ def lxd
     client_cert: File.join(fixture_path, "client.crt"),
     client_key: File.join(fixture_path, "client.key")
   )
- 
+
   # TODO: Bug in constructor
   client.verify_ssl = false
   client
@@ -197,7 +181,7 @@ def lxd2
     client_cert: File.join(fixture_path, "client.crt"),
     client_key: File.join(fixture_path, "client.key")
   )
- 
+
   # TODO: Bug in constructor
   client.verify_ssl = false
   client
@@ -213,7 +197,7 @@ end
 #   client.verify_ssl = false
 #   client
 # end
-# 
+#
 
 def create_test_container(name="test-container", extra_opts={})
 
@@ -228,7 +212,7 @@ def create_test_container(name="test-container", extra_opts={})
 end
 
 def delete_test_container(name="test-container", opts={})
-  
+
   container = client.container(name)
 
   if container.status != "Stopped"
@@ -245,13 +229,13 @@ end
 
 def create_test_image(alias_name=nil, options={})
   fingerprint = fixture_fingerprint("busybox-1.21.1-amd64-lxc.tar.xz")
-  
+
   client.create_image_from_file(fixture("busybox-1.21.1-amd64-lxc.tar.xz"), options.merge(sync: true))
-  
+
   if alias_name
     client.create_image_alias(fingerprint, alias_name)
   end
-  
+
   fingerprint
 end
 
@@ -273,7 +257,7 @@ end
 
 def test_migration_source_data
   {
-		architecture: "x86_64",
+    architecture: "x86_64",
     config: {
       :"volatile.base_image"  => "test-base-image",
       :"volatile.eth0.hwaddr" => "test-eth0-hwaddr",

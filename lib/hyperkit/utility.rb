@@ -15,7 +15,7 @@ module Hyperkit
     # @return A copy of the Hash, with its keys and values stringified
     def stringify_hash(input)
       input.inject({}){|h,(k,v)| h[k.to_s] = v.to_s; h}
-	  end
+    end
 
   end
 

@@ -3,7 +3,7 @@ require 'time'
 
 describe Hyperkit::Client::Operations do
 
-  let(:client) { lxd } 
+  let(:client) { lxd }
 
   let(:operation) {
     {
@@ -27,19 +27,19 @@ describe Hyperkit::Client::Operations do
   }
 
   let(:failed_operation) {
-		{
-			id: "e81ee5e8-6cce-46fd-b010-2c595ca66ed2",
-		 	class: "task",
-		 	created_at: Time.parse("2016-03-21 11:00:21 -0400"),
-		 	updated_at: Time.parse("2016-03-21 11:00:21 -0400"),
-		 	status: "Failure",
-		 	status_code: 400,
-		 	resources: nil,
-		 	metadata: nil,
-		 	may_cancel: false,
-		 	err:
-		  "The image already exists: c22e4941ad01ef4b5e69908b7de21105e06b8ac7a31e1ccd153826a3b15ee1ba"
-		}
+    {
+      id: "e81ee5e8-6cce-46fd-b010-2c595ca66ed2",
+       class: "task",
+       created_at: Time.parse("2016-03-21 11:00:21 -0400"),
+       updated_at: Time.parse("2016-03-21 11:00:21 -0400"),
+       status: "Failure",
+       status_code: 400,
+       resources: nil,
+       metadata: nil,
+       may_cancel: false,
+       err:
+      "The image already exists: c22e4941ad01ef4b5e69908b7de21105e06b8ac7a31e1ccd153826a3b15ee1ba"
+    }
   }
 
   describe ".operations", :vcr do
@@ -109,13 +109,13 @@ describe Hyperkit::Client::Operations do
       assert_requested request
     end
 
-		it "raises an error if the operation fails" do
-			request = stub_get("/1.0/operations/b8d84888-1dc2-44fd-b386-7f679e171ba5/wait").
-  		  to_return(ok_response.merge(body: { metadata: failed_operation }.to_json))
+    it "raises an error if the operation fails" do
+      request = stub_get("/1.0/operations/b8d84888-1dc2-44fd-b386-7f679e171ba5/wait").
+        to_return(ok_response.merge(body: { metadata: failed_operation }.to_json))
 
       call = lambda { client.wait_for_operation("b8d84888-1dc2-44fd-b386-7f679e171ba5")  }
-  		expect(call).to raise_error(Hyperkit::Error)
-		end
+      expect(call).to raise_error(Hyperkit::Error)
+    end
 
   end
 

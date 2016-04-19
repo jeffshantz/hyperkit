@@ -46,7 +46,7 @@ module Hyperkit
     # In Faraday 0.9, Faraday::Builder was renamed to Faraday::RackBuilder
     RACK_BUILDER_CLASS = defined?(Faraday::RackBuilder) ? Faraday::RackBuilder : Faraday::Builder
 
-		# Default Faraday middleware stack
+    # Default Faraday middleware stack
     MIDDLEWARE = RACK_BUILDER_CLASS.new do |builder|
       builder.use Hyperkit::Middleware::FollowRedirects
       builder.use Hyperkit::Response::RaiseError

@@ -5,7 +5,7 @@ module Hyperkit
   class Client
 
     # Methods for the operations API
-    # 
+    #
     # @see Hyperkit::Client
     # @see https://github.com/lxc/lxd/blob/master/specs/rest-api.md
     module Operations
@@ -14,7 +14,7 @@ module Hyperkit
       #
       # This will include operations that are currently executing, as well as
       # operations that are paused until {#wait_for_operation} is called, at
-      # which time they will begin executing. 
+      # which time they will begin executing.
       #
       # Additionally, since LXD keeps completed operations around for 5 seconds,
       # the list returned may include recently completed operations.
@@ -40,7 +40,7 @@ module Hyperkit
       #     :created_at => 2016-04-14 21:30:59 UTC,
       #     :updated_at => 2016-04-14 21:30:59 UTC,
       #     :status => "Running",
-      #     :status_code => 103, 
+      #     :status_code => 103,
       #     :resources => {
       #       :containers => ["/1.0/containers/test-container"]
       #     },
@@ -54,13 +54,13 @@ module Hyperkit
 
       # Cancel a running operation
       #
-      # Calling this will change the state of the operation to 
+      # Calling this will change the state of the operation to
       # <code>cancelling</code>.  Note that the operation must be cancelable,
-      # which can be ascertained by calling {#operation} and checking the 
+      # which can be ascertained by calling {#operation} and checking the
       # <code>may_cancel</code> property.
       #
       # @param [String] uuid UUID of the operation
-      # @return [Sawyer::Resource] 
+      # @return [Sawyer::Resource]
       #
       # @example Cancel an operation
       #   Hyperkit.cancel_operation("8b3dd0c2-9dad-4964-b00d-e21481a47fb8") => {}
@@ -75,10 +75,10 @@ module Hyperkit
       # has been passed to an asynchronous method.
       #
       # Note that, after an operation completes, LXD keeps it around for only 5
-      # seconds, so if you wait too long to call 
-      # <code>wait_for_operation</code>, you'll get an exception when you 
+      # seconds, so if you wait too long to call
+      # <code>wait_for_operation</code>, you'll get an exception when you
       # eventually do call it.
-      #   
+      #
       # @param [String] uuid UUID of the operation
       # @param [Fixnum] timeout Maximum time to wait (default: indefinite)
       # @return [Sawyer::Resource] Operation result
@@ -104,7 +104,7 @@ module Hyperkit
 
         sync = sync.nil? ? auto_sync : sync
 
-        if sync 
+        if sync
           wait_for_operation(response.id)
         else
           response
@@ -116,10 +116,10 @@ module Hyperkit
         File.join(operations_path, uuid)
       end
 
-      def operations_path 
+      def operations_path
         "/1.0/operations"
       end
- 
+
     end
 
   end

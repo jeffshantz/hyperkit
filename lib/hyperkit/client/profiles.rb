@@ -5,7 +5,7 @@ module Hyperkit
   class Client
 
     # Methods for the profiles API
-    # 
+    #
     # @see Hyperkit::Client
     # @see https://github.com/lxc/lxd/blob/master/specs/rest-api.md
     module Profiles
@@ -28,7 +28,7 @@ module Hyperkit
       # @option options [Hash] :config Profile configuration
       # @option options [String] :description Profile description
       # @option options [Hash] :devices Profile devices
-      # @return [Sawyer::Resource] 
+      # @return [Sawyer::Resource]
       #
       # @example Create profile with config
       #   Hyperkit.create_profile("test-profile", config: {
@@ -69,7 +69,7 @@ module Hyperkit
       # @option options [Hash] :config Profile configuration.  Existing configuration will be overwritten.
       # @option options [String] :description Profile description
       # @option options [Hash] :devices Profile devices.  Existing devices will be overwritten.
-      # @return [Sawyer::Resource] 
+      # @return [Sawyer::Resource]
       #
       # @example Update profile with config (config is overwritten -- not merged)
       #   Hyperkit.update_profile("test-profile", config: {
@@ -87,7 +87,7 @@ module Hyperkit
       #     }
       #   })
       def update_profile(name, options={})
-				opts = options.except(:name)
+        opts = options.except(:name)
         opts[:config] = stringify_hash(opts[:config]) if opts[:config]
         put(profile_path(name), opts).metadata
       end
@@ -96,7 +96,7 @@ module Hyperkit
       #
       # @param old_name [String] Existing profile name
       # @param new_name [String] New profile name
-      # @return [Sawyer::Resource] 
+      # @return [Sawyer::Resource]
       #
       # @example Rename profile 'test' to 'test2'
       #   Hyperkit.rename_profile("test", "test2")
@@ -120,7 +120,7 @@ module Hyperkit
       def profiles_path
         "/1.0/profiles"
       end
- 
+
       def profile_path(name)
         File.join(profiles_path, name)
       end

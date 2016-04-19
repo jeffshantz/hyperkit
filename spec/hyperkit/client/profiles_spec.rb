@@ -19,10 +19,10 @@ describe Hyperkit::Client::Profiles do
     it "returns only the profile names and not their paths" do
 
       body = { metadata: [
-				"/1.0/profiles/test1",
+        "/1.0/profiles/test1",
         "/1.0/profiles/test2",
         "/1.0/profiles/test3"
-			]}
+      ]}
 
       stub_get("/1.0/profiles").
         to_return(ok_response.merge(body: body.to_json))
@@ -64,15 +64,15 @@ describe Hyperkit::Client::Profiles do
         }
       })
 
-			profile = client.profile("test-profile")
+      profile = client.profile("test-profile")
 
-			expect(profile.devices.kvm.path).to eq("/dev/kvm")
-			expect(profile.devices.kvm.type).to eq("unix-char")
+      expect(profile.devices.kvm.path).to eq("/dev/kvm")
+      expect(profile.devices.kvm.type).to eq("unix-char")
     end
 
     it "accepts a description", :profile, :skip_create do
-			client.create_profile("test-profile", description: "hello")
-			profile = client.profile("test-profile")
+      client.create_profile("test-profile", description: "hello")
+      profile = client.profile("test-profile")
       expect(profile.description).to eq("hello")
     end
 
@@ -112,7 +112,7 @@ describe Hyperkit::Client::Profiles do
     end
 
     it "makes the correct API call" do
-			request = stub_get("/1.0/profiles/test").to_return(ok_response)
+      request = stub_get("/1.0/profiles/test").to_return(ok_response)
       client.profile("test")
       assert_requested request
     end

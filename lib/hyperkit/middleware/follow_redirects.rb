@@ -2,14 +2,14 @@ require 'faraday'
 require 'set'
 
 module Hyperkit
- 
+
   module Middleware
 
     # Public: Exception thrown when the maximum amount of requests is exceeded.
     #
     # Taken from Octokit, which was originally adapted from
     # https://github.com/lostisland/faraday_middleware/blob/138766e/lib/faraday_middleware/response/follow_redirects.rb
-  
+
     class RedirectLimitReached < Faraday::Error::ClientError
       attr_reader :response
 

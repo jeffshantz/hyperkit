@@ -530,7 +530,7 @@ describe Hyperkit::Client::Containers do
             server: "https://images.linuxcontainers.org:8443",
             alias: "ubuntu/xenial/amd64",
             protocol: "simplestreams",
-            sync: false) 
+            sync: false)
 
           assert_requested request
         end
@@ -609,7 +609,7 @@ describe Hyperkit::Client::Containers do
       after { delete_test_container }
 
       let(:operation) do
-        lambda do |options| 
+        lambda do |options|
           client.start_container("test-container", options)
         end
 
@@ -665,7 +665,7 @@ describe Hyperkit::Client::Containers do
       after { delete_test_container }
 
       let(:operation) do
-        lambda do |options| 
+        lambda do |options|
           client.stop_container("test-container", {force: true}.merge(options))
         end
 
@@ -741,7 +741,7 @@ describe Hyperkit::Client::Containers do
       after { delete_test_container }
 
       let(:operation) do
-        lambda do |options| 
+        lambda do |options|
           client.restart_container("test-container", {force: true}.merge(options))
         end
 
@@ -809,7 +809,7 @@ describe Hyperkit::Client::Containers do
       after { delete_test_container }
 
       let(:operation) do
-        lambda do |options| 
+        lambda do |options|
           client.freeze_container("test-container", {force: true}.merge(options))
         end
 
@@ -862,7 +862,7 @@ describe Hyperkit::Client::Containers do
       after { delete_test_container }
 
       let(:operation) do
-        lambda do |options| 
+        lambda do |options|
           client.unfreeze_container("test-container", {force: true}.merge(options))
         end
 
@@ -909,7 +909,7 @@ describe Hyperkit::Client::Containers do
       after { delete_test_container }
 
       let(:operation) do
-        lambda do |options| 
+        lambda do |options|
           client.create_container("test-container", alias: "cirros", sync: true)
           container = client.container("test-container")
           client.update_container("test-container", container, options)
@@ -969,7 +969,7 @@ describe Hyperkit::Client::Containers do
       before { create_test_container }
 
       let(:operation) do
-        lambda do |options| 
+        lambda do |options|
           client.delete_container("test-container", options)
         end
 
@@ -1003,7 +1003,7 @@ describe Hyperkit::Client::Containers do
       after { delete_test_container("test-container-2") }
 
       let(:operation) do
-        lambda do |options| 
+        lambda do |options|
           client.create_container("test-container", alias: "cirros", sync: true)
           client.rename_container("test-container", "test-container-2", options)
         end
@@ -1142,7 +1142,7 @@ describe Hyperkit::Client::Containers do
       end
 
       let(:operation) do
-        lambda do |options| 
+        lambda do |options|
           client.migrate(@source, "test-container", options)
         end
 
@@ -1166,7 +1166,7 @@ describe Hyperkit::Client::Containers do
         allow(client).to receive(:profiles) { %w[default] }
         request = stub_post("/1.0/containers").
           with(body: hash_including({
-					  "base-image" => "test-base-image"
+            "base-image" => "test-base-image"
           })).
           to_return(ok_response.merge(body: { metadata: {} }.to_json))
 
@@ -1189,11 +1189,11 @@ describe Hyperkit::Client::Containers do
             to_return(ok_response)
 
           client.migrate(test_source, "test2", move: true, sync: false)
-          assert_requested request	
+          assert_requested request
         end
 
       end
-      
+
       context "when move: true is not specified" do
 
         it "removes volatile attributes" do
@@ -1205,45 +1205,45 @@ describe Hyperkit::Client::Containers do
             to_return(ok_response)
 
           client.migrate(test_source, "test2", sync: false)
-          assert_requested request	
+          assert_requested request
         end
 
       end
 
     end
-    
+
     context "when an architecture is specified" do
 
       it "passes it to the server" do
         allow(client).to receive(:profiles) { %w[default] }
         request = stub_post("/1.0/containers").
           with(body: hash_including({
-						architecture: "custom-arch"
+            architecture: "custom-arch"
           })).
           to_return(ok_response)
 
         client.migrate(test_source, "test2", architecture: "custom-arch", sync: false)
-				assert_requested request	
-			end
+        assert_requested request
+      end
 
     end
 
-		context "when no architecture is specified" do
+    context "when no architecture is specified" do
 
       it "passes the source container's architecture" do
         allow(client).to receive(:profiles) { %w[default] }
         request = stub_post("/1.0/containers").
           with(body: hash_including({
-						architecture: "x86_64"
+            architecture: "x86_64"
           })).
           to_return(ok_response)
 
         client.migrate(test_source, "test2", sync: false)
-				assert_requested request	
-			end
+        assert_requested request
+      end
 
-		end
-    
+    end
+
     context "when a certificate is specified" do
 
       it "passes it as the source server's certificate" do
@@ -1251,7 +1251,7 @@ describe Hyperkit::Client::Containers do
         request = stub_post("/1.0/containers").
           with(body: hash_including({
             source: {
-							type: "migration", 
+              type: "migration",
               mode: "pull",
               operation: "test-ws-url",
               secrets: {
@@ -1259,17 +1259,17 @@ describe Hyperkit::Client::Containers do
                 fs: "test-fs-secret",
                 criu: "test-criu-secret"
               },
-						  certificate: "overridden"
+              certificate: "overridden"
             }
           })).
           to_return(ok_response)
 
         client.migrate(test_source, "test2", certificate: "overridden", sync: false)
-				assert_requested request	
-			end
+        assert_requested request
+      end
 
     end
-    
+
     context "when no certificate is specified" do
 
       it "passes the certificate returned by the source server" do
@@ -1277,7 +1277,7 @@ describe Hyperkit::Client::Containers do
         request = stub_post("/1.0/containers").
           with(body: hash_including({
             source: {
-							type: "migration", 
+              type: "migration",
               mode: "pull",
               operation: "test-ws-url",
               secrets: {
@@ -1285,17 +1285,17 @@ describe Hyperkit::Client::Containers do
                 fs: "test-fs-secret",
                 criu: "test-criu-secret"
               },
-						  certificate: "test-certificate"
+              certificate: "test-certificate"
             }
           })).
           to_return(ok_response)
 
         client.migrate(test_source, "test2", sync: false)
-				assert_requested request	
-			end
+        assert_requested request
+      end
 
     end
-    
+
     context "when a config hash is specified" do
 
       it "passes it to the server" do
@@ -1309,11 +1309,11 @@ describe Hyperkit::Client::Containers do
           to_return(ok_response)
 
         client.migrate(test_source, "test2", config: { hello: "world" }, sync: false)
-				assert_requested request	
+        assert_requested request
       end
 
     end
-    
+
     context "when no config hash is specified" do
 
       it "copies source container's configuration", :container, :skip_create, :remote_container do
@@ -1333,7 +1333,7 @@ describe Hyperkit::Client::Containers do
       end
 
     end
-    
+
     context "when profiles are passed" do
 
       it "applies them to the migrated container" do
@@ -1345,11 +1345,11 @@ describe Hyperkit::Client::Containers do
           to_return(ok_response)
 
         client.migrate(test_source, "test2", profiles: %w[test1 test2], sync: false)
-				assert_requested request	
+        assert_requested request
       end
 
     end
-    
+
     context "when no profiles are passed" do
 
       it "applies the profiles from the source container to the migrated container" do
@@ -1362,10 +1362,10 @@ describe Hyperkit::Client::Containers do
           to_return(ok_response)
 
         client.migrate(test_source, "test2", sync: false)
-				assert_requested request	
+        assert_requested request
 
       end
-    
+
       context "and not all source profiles exist on the target server" do
 
         it "raises an error" do
@@ -1376,9 +1376,9 @@ describe Hyperkit::Client::Containers do
         end
 
       end
-    
+
     end
-     
+
     context "when ephemeral: true is specified" do
 
       it "makes the migrated container ephemeral" do
@@ -1390,13 +1390,13 @@ describe Hyperkit::Client::Containers do
           to_return(ok_response)
 
         client.migrate(test_source, "test2", ephemeral: true, sync: false)
-				assert_requested request	
+        assert_requested request
       end
 
     end
-    
+
     context "when ephemeral: true is not specified" do
-      
+
       context "and the source container is ephemeral" do
 
         it "makes the migrated container ephemeral" do
@@ -1412,12 +1412,12 @@ describe Hyperkit::Client::Containers do
             to_return(ok_response)
 
           client.migrate(source, "test2", sync: false)
-				  assert_requested request	
+          assert_requested request
 
         end
 
       end
-    
+
       context "and the source container is persistent" do
 
         it "makes the source container persistent" do
@@ -1425,17 +1425,17 @@ describe Hyperkit::Client::Containers do
           allow(client).to receive(:profiles) { %w[default] }
           request = stub_post("/1.0/containers").
             with(body: hash_including({
-              ephemeral: false 
+              ephemeral: false
             })).
             to_return(ok_response)
 
           client.migrate(test_source, "test2", sync: false)
-				  assert_requested request	
+          assert_requested request
 
         end
 
       end
-    
+
     end
 
     context "when the source is a snapshot" do
@@ -1497,7 +1497,7 @@ describe Hyperkit::Client::Containers do
       end
 
       let(:operation) do
-        lambda do |options| 
+        lambda do |options|
           client.copy_container("test-container", "test-container2", options)
         end
 
@@ -1817,7 +1817,7 @@ describe Hyperkit::Client::Containers do
       end
 
       let(:operation) do
-        lambda do |options| 
+        lambda do |options|
           client.create_snapshot("test-container", "test-snapshot", options)
         end
 
@@ -1884,7 +1884,7 @@ describe Hyperkit::Client::Containers do
       end
 
       let(:operation) do
-        lambda do |options| 
+        lambda do |options|
           client.delete_snapshot("test-container", "test-snapshot", options)
         end
 
@@ -1920,7 +1920,7 @@ describe Hyperkit::Client::Containers do
       end
 
       let(:operation) do
-        lambda do |options| 
+        lambda do |options|
           client.rename_snapshot("test-container", "test-snapshot", "test-snapshot2", options)
         end
 
@@ -1965,7 +1965,7 @@ describe Hyperkit::Client::Containers do
       end
 
       let(:operation) do
-        lambda do |options| 
+        lambda do |options|
           client.restore_snapshot("test-container", "test-snapshot", options)
         end
 
@@ -2015,7 +2015,7 @@ describe Hyperkit::Client::Containers do
     context "when the source path does not exist" do
 
       it "raises an error", :container do
-				expect { retrieval_method.call("test-container", "/qwe") }.to raise_error(Hyperkit::NotFound)
+        expect { retrieval_method.call("test-container", "/qwe") }.to raise_error(Hyperkit::NotFound)
       end
 
     end
@@ -2023,7 +2023,7 @@ describe Hyperkit::Client::Containers do
     context "when the source path is a directory" do
 
       it "raises an error", :container do
-				expect { retrieval_method.call("test-container", "/etc") }.to raise_error(Hyperkit::BadRequest)
+        expect { retrieval_method.call("test-container", "/etc") }.to raise_error(Hyperkit::BadRequest)
       end
 
     end
@@ -2032,9 +2032,9 @@ describe Hyperkit::Client::Containers do
 
   describe ".read_file", :vcr do
 
-		it_behaves_like "a file retrieval method" do
-			let(:retrieval_method) { lambda { |container, path| client.read_file(container, path) } }
-		end
+    it_behaves_like "a file retrieval method" do
+      let(:retrieval_method) { lambda { |container, path| client.read_file(container, path) } }
+    end
 
     context "when a valid file is specified" do
 
@@ -2049,8 +2049,8 @@ describe Hyperkit::Client::Containers do
       end
 
       it "returns the file contents", :container do
-				response = client.read_file("test-container", "/etc/passwd")
-				expect(response).to include("cirros:x:1000:1000")
+        response = client.read_file("test-container", "/etc/passwd")
+        expect(response).to include("cirros:x:1000:1000")
       end
 
     end
@@ -2059,75 +2059,75 @@ describe Hyperkit::Client::Containers do
 
   describe ".pull_file", :vcr do
 
-		it_behaves_like "a file retrieval method" do
-			let(:retrieval_method) { lambda { |container, path| client.pull_file(container, path, "/tmp/test.txt") } }
-		end
+    it_behaves_like "a file retrieval method" do
+      let(:retrieval_method) { lambda { |container, path| client.pull_file(container, path, "/tmp/test.txt") } }
+    end
 
-		it "makes the correct API call" do
+    it "makes the correct API call" do
 
-			request = stub_get("/1.0/containers/test/files?path=/etc/passwd&url_encode=false").
-				to_return(ok_response)
+      request = stub_get("/1.0/containers/test/files?path=/etc/passwd&url_encode=false").
+        to_return(ok_response)
 
-			Dir.mktmpdir do |dir|
-				client.pull_file("test", "/etc/passwd", File.join(dir, "test-passwd"))
-				assert_requested request
-			end
+      Dir.mktmpdir do |dir|
+        client.pull_file("test", "/etc/passwd", File.join(dir, "test-passwd"))
+        assert_requested request
+      end
 
-		end
+    end
 
-		it "saves the file to the specified filename", :container do
+    it "saves the file to the specified filename", :container do
 
-			Dir.mktmpdir do |dir|
-				output_file = File.join(dir, "test-passwd")
-				client.pull_file("test-container", "/etc/passwd", output_file)
-				expect(File.exist?(output_file)).to be_truthy
-			end
+      Dir.mktmpdir do |dir|
+        output_file = File.join(dir, "test-passwd")
+        client.pull_file("test-container", "/etc/passwd", output_file)
+        expect(File.exist?(output_file)).to be_truthy
+      end
 
-		end
+    end
 
-		it "writes the file with the permissions of the original file", :container do
+    it "writes the file with the permissions of the original file", :container do
 
-			Dir.mktmpdir do |dir|
-				output_file = File.join(dir, "test-passwd")
-				client.pull_file("test-container", "/etc/passwd", output_file)
-				expect(File.stat(output_file).mode & 0777).to eq(0600)
-			end
-			
-		end
+      Dir.mktmpdir do |dir|
+        output_file = File.join(dir, "test-passwd")
+        client.pull_file("test-container", "/etc/passwd", output_file)
+        expect(File.stat(output_file).mode & 0777).to eq(0600)
+      end
 
-		it "returns the full path of the output file", :container do
+    end
 
-			Dir.mktmpdir do |dir|
-				output_file = File.join(dir, "test-passwd")
-				ret_val = client.pull_file("test-container", "/etc/passwd", output_file)
-				expect(ret_val).to eq(output_file)
-			end
+    it "returns the full path of the output file", :container do
 
-		end
+      Dir.mktmpdir do |dir|
+        output_file = File.join(dir, "test-passwd")
+        ret_val = client.pull_file("test-container", "/etc/passwd", output_file)
+        expect(ret_val).to eq(output_file)
+      end
 
-		context "when the path to the output path does not exist" do
+    end
 
-			it "raises an error", :container do
+    context "when the path to the output path does not exist" do
 
-			  Dir.mktmpdir do |dir|
+      it "raises an error", :container do
+
+        Dir.mktmpdir do |dir|
           call = lambda do
-			  	  client.pull_file("test-container", "/etc/passwd", File.join(dir,"test/test"))
+            client.pull_file("test-container", "/etc/passwd", File.join(dir,"test/test"))
           end
           expect(call).to raise_error(Errno::ENOENT)
-			  end
+        end
 
       end
 
-		end
+    end
 
-		context "when the output path is a directory" do
+    context "when the output path is a directory" do
 
-			it "raises an error", :container do
+      it "raises an error", :container do
 
-			  Dir.mktmpdir do |dir|
+        Dir.mktmpdir do |dir|
           test = lambda do
             begin
-			  	    client.pull_file("test-container", "/etc/passwd", dir)
+              client.pull_file("test-container", "/etc/passwd", dir)
               return false
             rescue => ex
               return ex.is_a?(Errno::EISDIR) || ex.is_a?(Errno::EACCES)
@@ -2140,12 +2140,12 @@ describe Hyperkit::Client::Containers do
           # error being raised, and does not allow raise_error to be used
           # in compound expectations.  Hence, the weirdness...
           expect(test.call).to be_truthy
-			  end
+        end
 
       end
 
-		end
-	
+    end
+
   end
 
   shared_examples_for "a file writing method" do
@@ -2258,8 +2258,8 @@ describe Hyperkit::Client::Containers do
 
   describe ".push_file", :vcr do
 
-		it_behaves_like "a file writing method" do
-			let(:write_method) do
+    it_behaves_like "a file writing method" do
+      let(:write_method) do
         lambda do |path, options|
           file = Tempfile.new("hyperkit-push_file")
           file.write("hello world")
@@ -2267,7 +2267,7 @@ describe Hyperkit::Client::Containers do
           client.push_file(file.path, "test-container", path, options)
         end
       end
-		end
+    end
 
     it "copies the local file to the container", :container do
       file = Tempfile.new("hyperkit-push_file")
@@ -2369,7 +2369,7 @@ describe Hyperkit::Client::Containers do
       end
 
       let(:operation) do
-        lambda do |options| 
+        lambda do |options|
           client.execute_command("test-container", "echo 'hello'", options)
         end
 
