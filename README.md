@@ -53,7 +53,7 @@ lxd.create_snapshot("test-container", "test-snapshot")
 # container.
 lxd2 = Hyperkit::Client.new(api_endpoint: "https://lxd2.example.com")
 source = lxd2.init_migration("remote-container")
-lxd.migrate_container(source, "migrated-container")
+lxd.migrate(source, "migrated-container")
 ```
 
 Each method in the API documentation has at least one example of its usage.   Please see the documentation for the following modules:
