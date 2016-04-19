@@ -85,6 +85,17 @@ describe Hyperkit::Client::Certificates do
       client.delete_certificate(test_cert_fingerprint)
     end
 
+    it "accepts a prefix of a certificate fingerprint" do
+      client.create_certificate(test_cert)
+      cert = client.certificate(test_cert_fingerprint[0..2])
+
+      expect(cert.certificate).to eq(test_cert)
+      expect(cert.fingerprint).to eq(test_cert_fingerprint)
+      expect(cert.type).to eq("client")
+
+      client.delete_certificate(test_cert_fingerprint)
+    end
+
     it "makes the correct API call" do
 			request = stub_get("/1.0/certificates/#{test_cert_fingerprint}").
         to_return(ok_response)
@@ -100,6 +111,12 @@ describe Hyperkit::Client::Certificates do
     it "deletes an existing certificate" do
       client.create_certificate(test_cert)
       client.delete_certificate(test_cert_fingerprint)
+      expect(client.certificates).to_not include(test_cert_fingerprint)
+    end
+
+    it "accepts a prefix of a certificate fingerprint" do
+      client.create_certificate(test_cert)
+      client.delete_certificate(test_cert_fingerprint[0..2])
       expect(client.certificates).to_not include(test_cert_fingerprint)
     end
 

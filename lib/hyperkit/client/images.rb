@@ -443,7 +443,6 @@ module Hyperkit
       #
       # @param fingerprint [String] Fingerprint of the image.  This can be a prefix of an image's fingerprint, as long as it is unambiguous.
       # @return [Sawyer::Response] An asynchronous response containing the generated secret
-      # @todo Add test for fingerprint prefix
       #
       # @example Generate a secret for an image
       #   response = Hyperkit.create_image_secret("878cf0c70e14fec80aaf4d5e923670e68c45aa89fb05a481019bf086aec42649") #=> {

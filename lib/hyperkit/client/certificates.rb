@@ -62,8 +62,6 @@ module Hyperkit
       #     :fingerprint => "c782c0f3530a04a5b2b78fc5292b7500aef1299370288b5eeb0450a6613a2c82", 
       #     :type => "client"   
       #   }
-      #
-      # @todo Write tests for the prefix
       def certificate(fingerprint)
         get(certificate_path(fingerprint)).metadata
       end
@@ -78,8 +76,6 @@ module Hyperkit
       #
       # @example Delete a certificate by specifying a prefix of its fingerprint
       #   Hyperkit.delete_certificate("c7")
-      #
-      # @todo Write tests for the prefix
       def delete_certificate(fingerprint)
         delete(certificate_path(fingerprint)).metadata
       end

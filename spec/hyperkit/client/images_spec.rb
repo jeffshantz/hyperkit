@@ -41,13 +41,16 @@ describe Hyperkit::Client::Images do
 
   describe ".image", :vcr do
 
-    it "retrieves a image" do
-      client.api_endpoint = 'https://images.linuxcontainers.org:8443'
-      images = client.images
-      fingerprint = images.first
+    it "retrieves a image", :image do
+      image = client.image(@fingerprint)
+			expect(image.fingerprint).to eq(@fingerprint)
+      expect(image.architecture).to eq("x86_64")
+    end
 
-      image = client.image(fingerprint)
-			expect(image.fingerprint).to eq(fingerprint)
+    it "accepts a prefix of an image fingerprint", :image do
+      image = client.image(@fingerprint[0..2])
+      expect(image.fingerprint).to eq(@fingerprint)
+      expect(image.architecture).to eq("x86_64")
     end
 
     it "makes the correct API call" do
@@ -1205,6 +1208,14 @@ describe Hyperkit::Client::Images do
       expect { unauthenticated_client.image(@fingerprint) }.to raise_error(Hyperkit::NotFound)
 
       image = unauthenticated_client.image(@fingerprint, secret: secret)
+      expect(image.fingerprint).to eq(@fingerprint)
+    end
+
+    it "accepts a prefix of an image fingerprint", :image do
+      secret = client.create_image_secret(@fingerprint[0..2]).metadata.secret
+      expect { unauthenticated_client.image(@fingerprint) }.to raise_error(Hyperkit::NotFound)
+
+      image = unauthenticated_client.image(@fingerprint[0..2], secret: secret)
       expect(image.fingerprint).to eq(@fingerprint)
     end
 

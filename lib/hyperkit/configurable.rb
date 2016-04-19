@@ -29,6 +29,8 @@ module Hyperkit
     # @!attribute api_endpoint
     #   @return [String] the base URL for API requests (default: <code>https://localhost:8443/</code>)
     # @!attribute auto_sync
+    #   Whether to automatically wait for asynchronous operations to complete
+    #
     #   A good deal of the LXD API calls are asynchronous: you issue the call,
     #   and you receive an operation ID.  You must then wait on the operation
     #   to complete.  Each asynchronous method is marked as such in the Hyperkit
