@@ -29,6 +29,48 @@ module Hyperkit
     # @!attribute api_endpoint
     #   @return [String] the base URL for API requests (default: <code>https://localhost:8443/</code>)
     # @!attribute auto_sync
+    #   A good deal of the LXD API calls are asynchronous: you issue the call,
+    #   and you receive an operation ID.  You must then wait on the operation
+    #   to complete.  Each asynchronous method is marked as such in the Hyperkit
+    #   documentation.  
+    #
+    #   <b>By default, Hyperkit provides auto-synchronization</b>.  When you 
+    #   initiate an asynchronous operation, Hyperkit will automatically wait for
+    #   the operation to complete before returning.  If you wish to override
+    #   this functionality, there are two ways to do this:
+    #   
+    #   * Pass <code>sync: false</code> to any of the asynchronous methods
+    #   * Set <code>auto_sync</code> to <code>false</code> at the module or 
+    #     class level (see examples)
+    #
+    #   Any asynchronous calls you issue after setting <code>auto_sync</code>
+    #   to <code>false</code> will immediately return an operation ID instead of
+    #   blocking.  To ensure that an operation is complete, you will need to
+    #   call {Hyperkit::Client::Operations#wait_for_operation}.
+    #   
+    #   Most users will likely want to keep <code>auto_sync</code> enabled for
+    #   convenience.
+    #
+    #   @example Create a container and automatically wait for it to complete (auto_sync is <code>true</code> by default)
+    #     Hyperkit.create_container("test-container", alias: "ubuntu/trusty/amd64")
+    #   
+    #   @example Disable auto-synchronization at the module level
+    #     Hyperkit.auto_sync = false
+    #     op = Hyperkit.create_container("test-container", alias: "ubuntu/trusty/amd64")
+    #     Hyperkit.wait_for_operation(op.id)
+    #
+    #   @example Disable auto-synchronization at the class level
+    #     client = Hyperkit::Client.new(auto_sync: false)
+    #     op = client.create_container("test-container", alias: "ubuntu/trusty/amd64")
+    #     client.wait_for_operation(op.id)
+    #
+    #   @example Disable auto-synchronization, but enable it for one call by passing <code>sync: true</code>
+    #     Hyperkit.auto_sync = false
+    #     Hyperkit.create_container("test-container", alias: "ubuntu/trusty/amd64", sync: true)
+    #   @example Enable auto-synchronization, but disable it for one call by passing <code>sync: false</code>
+    #     Hyperkit.auto_sync = true
+    #     op = Hyperkit.create_container("test-container", alias: "ubuntu/trusty/amd64", sync: false)
+    #     Hyperkit.wait_for_operation(op.id)
     #   @return [String] whether to automatically wait on asynchronous events (default: <code>true</code>)
     # @!attribute client_cert
     #   @return [String] the client certificate used to authenticate to the LXD server

@@ -70,10 +70,15 @@ module Hyperkit
 
       # Wait for an asynchronous operation to complete
       #
-      # Note that this is only needed if {#Hyperkit::auto_sync} has been
+      # Note that this is only needed if {Hyperkit::Configurable#auto_sync} has been
       # set to <code>false</code>, or if the option <code>sync: false</code>
       # has been passed to an asynchronous method.
       #
+      # Note that, after an operation completes, LXD keeps it around for only 5
+      # seconds, so if you wait too long to call 
+      # <code>wait_for_operation</code>, you'll get an exception when you 
+      # eventually do call it.
+      #   
       # @param [String] uuid UUID of the operation
       # @param [Fixnum] timeout Maximum time to wait (default: indefinite)
       # @return [Sawyer::Resource] Operation result
