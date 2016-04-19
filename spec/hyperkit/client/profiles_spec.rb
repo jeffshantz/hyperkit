@@ -58,9 +58,9 @@ describe Hyperkit::Client::Profiles do
 
     it "accepts a device hash", :profile, :skip_create do
       client.create_profile("test-profile", devices: {
-        "kvm": {
-          "type": "unix-char",
-          "path": "/dev/kvm"
+        kvm: {
+          type: "unix-char",
+          path: "/dev/kvm"
         }
       })
 
