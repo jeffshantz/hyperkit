@@ -284,6 +284,7 @@ module Hyperkit
       # @param options [Hash] Additional data to be passed
       # @option options [Hash] :environment Environment variables to set prior to command execution
       # @option options [Boolean] :sync If <code>false</code>, returns an asynchronous operation that must be passed to {Hyperkit::Client::Operations#wait_for_operation}.  If <code>true</code>, automatically waits and returns the result of the operation.  Defaults to value of {Hyperkit::Configurable#auto_sync}.
+      # @option options [Boolean] :record_output If <code>true</code>, captures the output of stdout and stderr.
       # @return [Sawyer::Resource] Operation or result, depending value of <code>:sync</code> parameter and/or {Hyperkit::Client::auto_sync}
       #
       # @example Run a command (passed as a string) in container "test-container"
@@ -313,7 +314,8 @@ module Hyperkit
           command: command,
           environment: opts[:environment] || {},
           "wait-for-websocket" => false,
-          interactive: false
+          interactive: false,
+          "record-output" => opts[:record_output] || false
         }).metadata
 
         handle_async(response, options[:sync])
