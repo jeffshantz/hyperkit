@@ -313,9 +313,9 @@ module Hyperkit
         response = post(File.join(container_path(container), "exec"), {
           command: command,
           environment: opts[:environment] || {},
-          "wait-for-websocket" => opts[:wait_for_websocket] || false,
-          interactive: opts[:interactive] || false,
-          "record-output" => opts[:record_output] || false
+          "wait-for-websocket" => options[:wait_for_websocket] || false,
+          interactive: options[:interactive] || false,
+          "record-output" => options[:record_output] || false
         }).metadata
 
         handle_async(response, options[:sync])
