@@ -2435,7 +2435,7 @@ describe Hyperkit::Client::Containers do
           request = stub_post("/1.0/containers/test/exec").
             with(body: hash_including({
               command: ["bash", "-c", "echo \"hello world\" | tee -a /tmp/test.txt"],
-              'wait-for-websocket': true,
+              'wait-for-websocket' => true,
               interactive: false
             })).
             to_return(ok_response)
@@ -2452,7 +2452,7 @@ describe Hyperkit::Client::Containers do
           request = stub_post("/1.0/containers/test/exec").
             with(body: hash_including({
               command: ["bash", "-c", "echo \"hello world\" | tee -a /tmp/test.txt"],
-              'wait-for-websocket': true,
+              'wait-for-websocket' => true,
               interactive: true
             })).
             to_return(ok_response)
@@ -2470,7 +2470,7 @@ describe Hyperkit::Client::Containers do
         request = stub_post("/1.0/containers/test/exec").
           with(body: hash_including({
             command: ["bash", "-c", "echo \"hello world\" | tee -a /tmp/test.txt"],
-            'record-output': true
+            'record-output' => true
           })).
           to_return(ok_response)
 
