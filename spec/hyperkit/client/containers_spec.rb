@@ -2427,6 +2427,58 @@ describe Hyperkit::Client::Containers do
 
     end
 
+    context "waiting for the websocket" do
+
+      context "when interactive is false" do
+
+        it "makes the correct API call" do
+          request = stub_post("/1.0/containers/test/exec").
+            with(body: hash_including({
+              command: ["bash", "-c", "echo \"hello world\" | tee -a /tmp/test.txt"],
+              'wait-for-websocket': true,
+              interactive: false
+            })).
+            to_return(ok_response)
+
+          client.execute_command("test", ["bash", "-c", "echo \"hello world\" | tee -a /tmp/test.txt"], sync: false, wait_for_websocket: true, interactive: false)
+          assert_requested request
+        end
+
+      end
+
+      context "when interactive is true" do
+
+        it "makes the correct API call" do
+          request = stub_post("/1.0/containers/test/exec").
+            with(body: hash_including({
+              command: ["bash", "-c", "echo \"hello world\" | tee -a /tmp/test.txt"],
+              'wait-for-websocket': true,
+              interactive: true
+            })).
+            to_return(ok_response)
+
+          client.execute_command("test", ["bash", "-c", "echo \"hello world\" | tee -a /tmp/test.txt"], sync: false, wait_for_websocket: true, interactive: true)
+          assert_requested request
+        end
+
+      end
+
+    end
+
+    context "when recording the output" do
+      it "makes the correct API call" do
+        request = stub_post("/1.0/containers/test/exec").
+          with(body: hash_including({
+            command: ["bash", "-c", "echo \"hello world\" | tee -a /tmp/test.txt"],
+            'record-output': true
+          })).
+          to_return(ok_response)
+
+        client.execute_command("test", ["bash", "-c", "echo \"hello world\" | tee -a /tmp/test.txt"], sync: false, record_output: true)
+        assert_requested request
+      end
+    end
+
     it "raises an error if the container is not running", :container do
       call = lambda { client.execute_command("test-container", "echo hello") }
       expect(call).to raise_error(Hyperkit::BadRequest)
