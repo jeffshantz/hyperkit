@@ -837,19 +837,23 @@ module Hyperkit
       #
       # @example Copy /etc/passwd in container "test" to the local file /tmp/passwd
       #   Hyperkit.pull_file("test", "/etc/passwd", "/tmp/passwd") #=> "/tmp/passwd"
-      def pull_file(container, source_file, dest_file)
+      def pull_file(container, source_file, dest)
         contents = get(file_path(container, source_file), url_encode: false)
         headers = last_response.headers
 
-        File.open(dest_file, "wb") do |f|
-          f.write(contents)
+        if dest.respond_to? :write
+          dest.write(contents)
+        else
+          File.open(dest, "wb") do |f|
+            f.write(contents)
+          end
+
+          if headers["x-lxd-mode"]
+            File.chmod(headers["x-lxd-mode"].to_i(8), dest)
+          end
         end
 
-        if headers["x-lxd-mode"]
-          File.chmod(headers["x-lxd-mode"].to_i(8), dest_file)
-        end
-
-        dest_file
+        dest
 
       end
 
@@ -927,10 +931,14 @@ module Hyperkit
       #     gid: 1000,
       #     mode: 0644
       #   )
-      def push_file(source_file, container, dest_file, options={})
+      def push_file(source, container, dest_file, options={})
 
         write_file(container, dest_file, options) do |f|
-          f.write File.read(source_file)
+          if source.respond_to? :read
+            f.write source
+          else
+            f.write File.read(source)
+          end
         end
 
       end
