@@ -935,7 +935,7 @@ module Hyperkit
 
         write_file(container, dest_file, options) do |f|
           if source.respond_to? :read
-            f.write source
+            f.write source.read
           else
             f.write File.read(source)
           end
