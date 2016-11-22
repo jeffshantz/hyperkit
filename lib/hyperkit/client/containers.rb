@@ -832,11 +832,14 @@ module Hyperkit
       #
       # @param container [String] Container name
       # @param source_file [String] Full path to a file within the container
-      # @param dest_file [String] Full path of desired output file (will be created/overwritten)
+      # @param dest [String, IO] Full path of desired output file (will be created/overwritten), or an IO object to write to
       # @return [String] Full path to the local output file
       #
       # @example Copy /etc/passwd in container "test" to the local file /tmp/passwd
       #   Hyperkit.pull_file("test", "/etc/passwd", "/tmp/passwd") #=> "/tmp/passwd"
+      #
+      # @example Copy /etc/passwd in container "test" to a StringIO object
+      #   Hyperkit.pull_file("test", "/etc/passwd", StringIO.new) #=> <StringIO:0x007fd196061a70>
       def pull_file(container, source_file, dest)
         contents = get(file_path(container, source_file), url_encode: false)
         headers = last_response.headers
@@ -913,7 +916,7 @@ module Hyperkit
       #
       # @param container [String] Container name
       # @param source_file [String] Full path to a file within the container
-      # @param dest_file [String] Full path of desired output file (will be created/overwritten)
+      # @param dest [String, IO] Full path of desired output file (will be created/overwritten), or an IO object to write to
       # @param options [Hash] Additional data to be passed
       # @option options [Fixnum] :uid Owner to assign to the file
       # @option options [Fixnum] :gid Group to assign to the file
@@ -922,6 +925,9 @@ module Hyperkit
       #
       # @example Copy /tmp/test.txt from the local system to /etc/passwd in the container
       #   Hyperkit.push_file("/tmp/test.txt", "test-container", "/etc/passwd")
+      #
+      # @example Write the contents of a StringIO object to /etc/passwd in the container
+      #   Hyperkit.push_file(StringIO.new("test string"), "test-container", "/etc/passwd")
       #
       # @example Assign uid, gid, and mode to a file:
       #   Hyperkit.push_file("/tmp/test.txt",

@@ -2085,6 +2085,13 @@ describe Hyperkit::Client::Containers do
 
     end
 
+    it "writes the content of the file to the object", :container do
+
+      output = StringIO.new
+      client.pull_file("test-container", "/etc/passwd", output)
+      expect(output.read.empty?).to be true
+    end
+
     it "writes the file with the permissions of the original file", :container do
 
       Dir.mktmpdir do |dir|
@@ -2279,6 +2286,12 @@ describe Hyperkit::Client::Containers do
       expect(client.read_file("test-container", "/tmp/push.txt")).to eq("hello world\ntesting!")
     end
 
+    it "writes the content of an IO object to the container", :container do
+      io = StringIO.new("hello world\ntesting!")
+
+      client.push_file(io, "test-container", "/tmp/push.txt")
+      expect(client.read_file("test-container", "/tmp/push.txt")).to eq("hello world\ntesting!")
+    end
   end
 
   describe ".logs", :vcr do
