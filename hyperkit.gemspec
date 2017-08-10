@@ -9,8 +9,6 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Jeff Shantz"]
   spec.email         = ["hyperkit@jeffshantz.com"]
 
-  spec.required_ruby_version = ">= 2.2.2"
-
   spec.summary       = %q{Hyperkit is a flat API wrapper for LXD, the next-generation hypervisor}
   spec.homepage      = "http://jeffshantz.github.io/hyperkit"
   spec.license       = "MIT"
@@ -28,7 +26,7 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "activesupport", ">= 5.0.0"
+  spec.add_dependency "activesupport", ">= 4.2.6"
   spec.add_dependency "sawyer"
   spec.add_development_dependency "bundler", "~> 1.0"
 
