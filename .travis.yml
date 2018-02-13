@@ -7,6 +7,10 @@ rvm:
   - 2.0
   - 2.1
   - 2.2
+  - 2.2.2 # required by 'activesupport' >= 5.0.0
+  - 2.3
+  - 2.4
+  - 2.4.2 # embedded in chefdk 2.4.17
 
 bundler_args: --without development
 
@@ -17,6 +21,9 @@ matrix:
     - rvm: jruby
     - rvm: rbx-2
     - rvm: 1.9.3
+    - rvm: 2.0
+    - rvm: 2.1
+    - rvm: 2.2
 
 notifications:
   emails: true
