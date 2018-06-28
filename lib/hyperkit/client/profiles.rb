@@ -92,6 +92,28 @@ module Hyperkit
         put(profile_path(name), opts).metadata
       end
 
+      # Patch an existing profile using patch api
+      #
+      # @param name [String] Profile name
+      # @param options [Hash] Additional data to be passed
+      # @option options [Hash] :config Profile configuration. It will be merged with existing configuration
+      # @option options [String] :description Profile description
+      # @option options [Hash] :devices Profile devices.  Existing devices will be merged
+      # @return [Sawyer::Resource]
+      #
+      # @example Patch profile with config (config is merged)
+      #   Hyperkit.patch_profile("test-profile", config: {
+      #     "limits.memory" => "4GB",
+      #     "limits.cpu" => 4,
+      #     "raw.lxc" => "lxc.aa_profile = unconfined"
+      #   })
+      #
+      def patch_profile(name, options={})
+        opts = options.except(:name)
+        opts[:config] = stringify_hash(opts[:config]) if opts[:config]
+        patch(profile_path(name), opts).metadata
+      end
+
       # Rename a profile
       #
       # @param old_name [String] Existing profile name

@@ -119,6 +119,75 @@ describe Hyperkit::Client::Profiles do
 
   end
 
+  describe ".patch_profile", :vcr do
+
+    @profile_data = {
+      description: "A test profile",
+      config: {
+        "raw.lxc" => "lxc.aa_profile = unconfined"
+      },
+      devices: {
+        eth0: {
+          nictype: "bridged",
+          parent: "br-ext",
+          type: "nic"
+        }
+      }
+    }
+
+    it "should not change existing keys when new key is added", :profile, profile_options: @profile_data do
+      client.patch_profile("test-profile", {
+        config: {"limits.cpu" => "1"}
+      })
+
+      profile = client.profile("test-profile")
+
+      expect(profile.name).to eq("test-profile")
+      expect(profile.config[:"limits.cpu"]).to eq("1")
+      expect(profile.config[:"raw.lxc"]).to eq("lxc.aa_profile = unconfined")
+      expect(profile.description).to eq("A test profile")
+      expect(profile.devices.eth0.nictype).to eq("bridged")
+      expect(profile.devices.eth0.parent).to eq("br-ext")
+      expect(profile.devices.eth0.type).to eq("nic")
+    end
+
+    it "should change the existing if passed", :profile, profile_options: @profile_data do
+      client.patch_profile("test-profile", {
+        config: {"limits.cpu" => "1", "raw.lxc" => "lxc.aa_profile = confined"}
+      })
+
+      profile = client.profile("test-profile")
+
+      expect(profile.name).to eq("test-profile")
+      expect(profile.config[:"limits.cpu"]).to eq("1")
+      expect(profile.config[:"raw.lxc"]).to eq("lxc.aa_profile = confined")
+      expect(profile.description).to eq("A test profile")
+      expect(profile.devices.eth0.nictype).to eq("bridged")
+      expect(profile.devices.eth0.parent).to eq("br-ext")
+      expect(profile.devices.eth0.type).to eq("nic")
+    end
+
+    it "accepts non-String config values", :profile, profile_options: @profile_data do
+      client.patch_profile("test-profile", config: {
+        "limits.cpu" => 2
+      })
+      profile = client.profile("test-profile")
+      expect(profile.config[:"raw.lxc"]).to eq("lxc.aa_profile = unconfined")
+      expect(profile.config["limits.cpu"]).to eq("2")
+      expect(profile.name).to eq("test-profile")
+      expect(profile.description).to eq("A test profile")
+      expect(profile.devices.eth0.nictype).to eq("bridged")
+      expect(profile.devices.eth0.parent).to eq("br-ext")
+      expect(profile.devices.eth0.type).to eq("nic")
+    end
+
+    it "makes the correct API call" do
+      request = stub_patch("/1.0/profiles/test").to_return(ok_response)
+      client.patch_profile("test")
+      assert_requested request
+    end
+
+  end
   describe ".update_profile", :vcr do
 
     @profile_data = {
