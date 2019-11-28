@@ -10,7 +10,7 @@ module Hyperkit
     # Taken from Octokit, which was originally adapted from
     # https://github.com/lostisland/faraday_middleware/blob/138766e/lib/faraday_middleware/response/follow_redirects.rb
 
-    class RedirectLimitReached < Faraday::Error::ClientError
+    class RedirectLimitReached < Faraday::ClientError
       attr_reader :response
 
       def initialize(response)
