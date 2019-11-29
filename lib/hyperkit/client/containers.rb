@@ -1031,7 +1031,7 @@ module Hyperkit
       end
 
       def extract_container_options(name, options)
-        opts = options.slice(:architecture, :profiles, :ephemeral, :config).
+        opts = options.slice(:architecture, :profiles, :ephemeral, :config, :devices).
                        merge({ name: name })
 
         opts[:config] = stringify_hash(opts[:config]) if opts[:config]
