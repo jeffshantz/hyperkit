@@ -5,7 +5,7 @@ module Hyperkit
     # Methods for the networks API
     #
     # @see Hyperkit::Client
-    # @see https://github.com/lxc/lxd/blob/master/specs/rest-api.md
+    # @see https://github.com/lxc/lxd/blob/master/doc/rest-api.md
     module Networks
 
       # List of networks defined on the host
@@ -44,4 +44,3 @@ module Hyperkit
   end
 
 end
-
