@@ -8,7 +8,7 @@ module Hyperkit
     # Methods for the containers API
     #
     # @see Hyperkit::Client
-    # @see https://github.com/lxc/lxd/blob/master/specs/rest-api.md
+    # @see https://github.com/lxc/lxd/blob/master/doc/rest-api.md
     module Containers
 
       # @!group Retrieval

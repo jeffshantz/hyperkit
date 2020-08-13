@@ -7,7 +7,7 @@ module Hyperkit
     # Methods for the profiles API
     #
     # @see Hyperkit::Client
-    # @see https://github.com/lxc/lxd/blob/master/specs/rest-api.md
+    # @see https://github.com/lxc/lxd/blob/master/doc/rest-api.md
     module Profiles
 
       # List of profiles on the server
